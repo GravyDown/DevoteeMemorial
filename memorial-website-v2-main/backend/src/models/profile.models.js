@@ -33,6 +33,11 @@ const profileSchema = new mongoose.Schema(
     },
 
     spiritualMaster: { type: String, required: true},
+    honorific: { type: String },
+    associatedTemple: { type: String }, // frontend "Associated Temple"
+    ashramRole: { type: String },       // frontend "Ashram / Role"
+    coreServices: [{ type: String }],   // frontend "Core Services" (array)
+    accountType: { type: String },      // "Memorial" | "Tribute"
 
     location: {
       type: String,

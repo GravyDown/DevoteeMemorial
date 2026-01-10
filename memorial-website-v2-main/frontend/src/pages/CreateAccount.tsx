@@ -10,10 +10,66 @@ import { useState } from "react";
 
 export default function CreateAccount() {
   // Local state for form (as per instructions)
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState<any>({
+    name: "",
+    honorific: "",
+    associatedTemple: "",
+    ashramRole: "",
+    coreServices: [], // array of strings
+    spiritualMaster: "",
+    birthDate: "", // yyyy-MM-dd
+    deathDate: "", // yyyy-MM-dd
+    location: "",
+    about: "",
+    accountType: "Memorial",
+    contributorName: "",
+    contributorPhone: "",
+  });
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
-  const handleNext = () => {
-    console.log("Form State:", formData);
+  const handleChange = (key: string, value: any) =>
+    setFormData((p: any) => ({ ...p, [key]: value }));
+
+  const handleNext = async () => {
+    try{
+      const fd = new FormData();
+      fd.append("name", formData.name);
+      fd.append("honorific", formData.honorific);
+      fd.append("associatedTemple", formData.associatedTemple);
+      fd.append("ashramRole", formData.ashramRole);
+      fd.append("spiritualMaster", formData.spiritualMaster);
+      fd.append("location", formData.location);
+      fd.append("description", formData.about || "");
+      fd.append("accountType", formData.accountType);
+      fd.append("contributorName", formData.contributorName);
+      fd.append("contributorPhone", formData.contributorPhone);
+
+      // dates as yyyy-MM-dd strings
+      fd.append("birthDate", formData.birthDate);
+      fd.append("deathDate", formData.deathDate);
+
+      // arrays - stringify so backend can parse
+      fd.append("coreServices", JSON.stringify(formData.coreServices || []));
+
+      // file - ensure the backend multer field name is 'coverImage'
+      if (coverFile) fd.append("coverImage", coverFile);
+
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        body: fd,
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        console.log("Profile created", result);
+        // navigate to next page / show success
+      } else {
+        console.error("Create failed", result);
+      }
+    } catch (error) {
+      console.error("Error during profile creation", error);
+    }
+
   };
 
   return (

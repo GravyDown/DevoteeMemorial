@@ -26,6 +26,13 @@ export const createProfile = asyncHandler(async (req, res, next) => {
       birthDate: birthDateStr,
       deathDate: deathDateStr,
       spiritualMaster,
+
+      //new fields(jagruti mataji design)
+      honorific,
+      associatedTemple,
+      ashramRole,
+      coreServices,
+      accountType,
     } = req.body;
 
     // Validate required fields (years no longer required)
@@ -162,6 +169,11 @@ export const createProfile = asyncHandler(async (req, res, next) => {
       philosophicalContributions,
       disciples,
       memorialLocation,
+      honorific,
+      ashramRole,
+      coreServices: coreServicesArr,
+      accountType,
+      associatedTemple,
       audioFiles: audioFileUrls,
       // New full dates
       birthDate,
