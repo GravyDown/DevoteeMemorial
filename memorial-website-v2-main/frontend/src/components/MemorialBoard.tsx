@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MemorialCard from "./MemorialCard";
 import Filters, { FilterState } from "./Filters";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-
 import { motion } from "framer-motion";
+
+interface Memorial {
+  id: string;
+  name: string;
+  years: string;
+  image: string;
+  description?: string;
+  location?: string;
+}
 
 export default function MemorialBoard() {
   const [filters, setFilters] = useState<FilterState>({
@@ -17,15 +25,34 @@ export default function MemorialBoard() {
   });
 
   const [sliderIndex, setSliderIndex] = useState(0);
+  const [memorials, setMemorials] = useState<Memorial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const CARD_WIDTH = 190;
   const GAP = 24;
 
-  // Mock data for memorials
-  const memorials = [
-    { _id: "1", name: "Srila Prabhupada", yearOfBirth: "1896", yearOfDeparture: "1977", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Bhaktivedanta_Swami_Prabhupada_in_1975_at_Varsana_dhama.jpg/220px-Bhaktivedanta_Swami_Prabhupada_in_1975_at_Varsana_dhama.jpg", isVerified: true },
-    { _id: "2", name: "Bhaktisiddhanta Sarasvati", yearOfBirth: "1874", yearOfDeparture: "1937", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Bhaktisiddhanta_Sarasvati.jpg/220px-Bhaktisiddhanta_Sarasvati.jpg", isVerified: true },
-    { _id: "3", name: "Gaurakisora Dasa Babaji", yearOfBirth: "1838", yearOfDeparture: "1915", image: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Gaura_Kishora_Dasa_Babaji.jpg", isVerified: true },
-  ];
+  // Fetch memorials from backend
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    fetch("/api/accepted/profiles")
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch profiles");
+        }
+        const data = await res.json();
+        setMemorials(data);
+      })
+      .catch((err) => {
+        setError(err.message);
+        console.error("Error fetching profiles:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -45,18 +72,16 @@ export default function MemorialBoard() {
   };
 
   const handleNextSlide = () => {
-    if (!memorials) return;
-    // Loop back to start if we've scrolled past the end
+    if (!memorials.length) return;
     setSliderIndex((prev) => {
       const next = prev + 1;
-      // If we have fewer items than can fill the screen, or we're at the end, loop
       if (next >= memorials.length) return 0;
       return next;
     });
   };
 
   const handlePrevSlide = () => {
-    if (!memorials) return;
+    if (!memorials.length) return;
     setSliderIndex((prev) => {
       const next = prev - 1;
       if (next < 0) return memorials.length - 1;
@@ -72,16 +97,13 @@ export default function MemorialBoard() {
 
       {/* Featured Card */}
       <div className="bg-[#6B8E9B] rounded-3xl p-0 text-white relative overflow-hidden mb-12 shadow-xl">
-        <div className="absolute top-0 right-0 p-8 opacity-20">
-          {/* Decorative pattern or logo could go here */}
-        </div>
+        <div className="absolute top-0 right-0 p-8 opacity-20"></div>
 
         <div className="flex flex-col md:flex-row items-stretch">
-          {/* Left Content */}
           <div className="flex-1 p-8 md:p-12 flex flex-col justify-center relative z-10">
             <div className="flex items-center gap-6 mb-6">
               <div className="w-24 h-24 rounded-full border-4 border-white/30 overflow-hidden shadow-lg shrink-0">
-                <img src="https://i.pravatar.cc/300?img=12" alt="Featured" className="w-full h-full object-cover" />
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz34AXN9tz2eaTk4yjFzzlj6WO3roO8by2tg&s" alt="Featured" className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
@@ -99,7 +121,6 @@ export default function MemorialBoard() {
             </p>
           </div>
 
-          {/* Right Action Area */}
           <div className="w-full md:w-auto bg-white/10 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-center items-center border-l border-white/10">
             <Button className="bg-white text-[#5D7E96] hover:bg-white/90 rounded-full px-8 py-6 text-lg font-medium shadow-lg">
               View Offering →
@@ -107,7 +128,6 @@ export default function MemorialBoard() {
           </div>
         </div>
 
-        {/* Navigation Buttons */}
         <button className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-white transition-colors">
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -122,9 +142,16 @@ export default function MemorialBoard() {
         onReset={handleReset}
       />
 
-      {memorials === undefined ? (
+      {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-[#8D6E63]" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p className="text-lg">Error loading memorials: {error}</p>
+          <Button variant="link" onClick={() => window.location.reload()} className="text-[#8D6E63]">
+            Try Again
+          </Button>
         </div>
       ) : memorials.length === 0 ? (
         <div className="text-center py-12 text-[#8D6E63]/60">
@@ -140,20 +167,19 @@ export default function MemorialBoard() {
               transition={{ type: "spring", stiffness: 100, damping: 20, mass: 1 }}
             >
               {memorials.map((memorial) => (
-                <div key={memorial._id} className="shrink-0" style={{ width: CARD_WIDTH }}>
+                <div key={memorial.id} className="shrink-0" style={{ width: CARD_WIDTH }}>
                   <MemorialCard
-                    id={memorial._id}
+                    id={memorial.id}
                     name={memorial.name}
-                    years={`${memorial.yearOfBirth} - ${memorial.yearOfDeparture}`}
+                    years={memorial.years}
                     image={memorial.image}
-                    isVerified={memorial.isVerified}
+                    isVerified={true}
                   />
                 </div>
               ))}
             </motion.div>
           </div>
 
-          {/* Previous Navigation Arrow */}
           <button
             onClick={handlePrevSlide}
             className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm hover:bg-white text-[#8D6E63] rounded-full shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 border border-[#8D6E63]/10"
@@ -162,7 +188,6 @@ export default function MemorialBoard() {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Next Navigation Arrow */}
           <button
             onClick={handleNextSlide}
             className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm hover:bg-white text-[#8D6E63] rounded-full shadow-md flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 border border-[#8D6E63]/10"

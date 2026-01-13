@@ -8,10 +8,10 @@ interface MemorialCardProps {
   years: string;
   image: string;
   isVerified?: boolean;
-  id?: string;
+  id: string;
 }
 
-export default function MemorialCard({ name, years, image, isVerified, id = "1" }: MemorialCardProps) {
+export default function MemorialCard({ name, years, image, isVerified, id }: MemorialCardProps) {
   return (
     <Link to={`/disciples/${id}`} state={{ image, name, years }} className="block h-full">
       <motion.div 

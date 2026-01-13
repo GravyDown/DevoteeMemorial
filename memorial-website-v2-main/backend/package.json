@@ -3,10 +3,26 @@
   "version": "1.0.0",
   "description": "This directory is reserved for the future MongoDB/Express backend service.\r Currently, the application runs with a frontend-only architecture using mocked data.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
+    "dev": "nodemon --watch src --exec node ./src/index.js",
+    "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "cloudinary": "^2.8.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.1.2",
+    "mongoose-aggregate-paginate-v2": "^1.1.4",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
 }

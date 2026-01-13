@@ -104,7 +104,7 @@ const profileSchema = new mongoose.Schema(
 );
 
 // Keep split parts and years in sync automatically
-profileSchema.pre("validate", function (next) {
+profileSchema.pre("validate", function () {
   if (this.birthDate instanceof Date && !isNaN(this.birthDate)) {
     this.birthYear = this.birthDate.getUTCFullYear();
     this.birthMonth = this.birthDate.getUTCMonth() + 1; // 1-12
@@ -128,7 +128,7 @@ profileSchema.pre("validate", function (next) {
   if (this.birthYear && this.deathYear) {
     this.years = `${this.birthYear} - ${this.deathYear}`;
   }
-  next();
+
 });
 
 // Server-side validation: death must be after birth
