@@ -3,42 +3,48 @@ import { Link } from "react-router";
 
 export default function Hero() {
   return (
-    <section className="max-w-[1280px] mx-auto px-16 pt-[158px] pb-16">
-      <div className="flex justify-between items-center h-[408px]">
-        {/* Left Column (Text) */}
-        <div className="flex flex-col items-start w-[521px]">
-          <h1 className="font-script font-normal text-[82px] leading-[70px] tracking-[0.05em] text-[#804B23]">
+    <section className="pt-24 pb-16">
+      <div className="flex flex-col-reverse lg:flex-row items-center gap-12">
+        {/* LEFT: Text */}
+        <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-xl">
+          <h1 className="font-script text-[#804B23] leading-tight">
             A Tribute to <br />
             <span className="whitespace-nowrap">Eternal Service</span>
           </h1>
-          <p className="text-[#295F98] font-medium text-[16px] leading-none w-[508px] mt-6">
-            A sacred space to honor Srila Prabhupada's disciples — explore their lives, cherish their memories, and offer your heartfelt tributes.
+
+          <p className="text-[#295F98] font-medium mt-6 text-sm sm:text-base">
+            A sacred space to honor Srila Prabhupada's disciples — explore their lives,
+            cherish their memories, and offer your heartfelt tributes.
           </p>
-          <div className="flex gap-4 mt-8">
-            <Button className="bg-[#8D6E63] hover:bg-[#795548] text-white rounded-full px-8 h-[44px] text-[15px] font-medium shadow-lg hover:shadow-xl transition-all">
+
+          <div className="flex flex-col sm:flex-row gap-4 mt-8 w-full sm:w-auto">
+            <Button className="bg-[#8D6E63] hover:bg-[#795548] text-white rounded-full px-8 h-[44px]">
               Explore →
             </Button>
+
             <Link to="/offerings/new">
-              <Button variant="outline" className="border-[#8D6E63] text-[#8D6E63] hover:bg-[#8D6E63]/10 bg-transparent rounded-full px-8 h-[44px] text-[15px] font-medium">
+              <Button
+                variant="outline"
+                className="border-[#8D6E63] text-[#8D6E63] rounded-full px-8 h-[44px] w-full sm:w-auto"
+              >
                 Give Offering
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Right Column (Image Block) */}
-        <div className="relative">
-          <div className="relative w-[590px] h-[408px] rounded-[284.87px] overflow-hidden backdrop-blur-[56.52px]">
-             <img 
-               src="https://harmless-tapir-303.convex.cloud/api/storage/34ce29e0-5b3a-4677-a64d-a384afbc2bc6" 
-               alt="Temple" 
-               className="w-full h-full object-cover"
-             />
-             {/* Bottom fade effect */}
-             <div className="absolute bottom-0 left-0 right-0 h-[80px] bg-gradient-to-t from-[#FFF1DF] to-transparent pointer-events-none" />
+        {/* RIGHT: Image */}
+        <div className="relative w-full max-w-md sm:max-w-lg">
+          <div className="relative aspect-[3/2] rounded-full overflow-hidden">
+            <img
+              src="https://harmless-tapir-303.convex.cloud/api/storage/34ce29e0-5b3a-4677-a64d-a384afbc2bc6"
+              alt="Temple"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-[#FFF1DF] to-transparent" />
           </div>
-          {/* Subtext - Positioned absolutely to not affect layout */}
-          <p className="absolute top-full left-1/2 -translate-x-1/2 w-[618px] mt-[25px] font-script font-normal text-[48px] leading-[100%] tracking-normal text-[#E2A16F] text-center whitespace-nowrap">
+
+          <p className="mt-6 font-script text-3xl sm:text-4xl text-[#E2A16F] text-center">
             In Loving Service and Remembrance
           </p>
         </div>

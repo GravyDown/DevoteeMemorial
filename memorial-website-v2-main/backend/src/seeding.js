@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import { Profile } from "./models/profile.models.js";
 import dotenv from "dotenv";
 
-dotenv.config()
+dotenv.config({
+  path: "../.env"
+});
 
 const seedProfiles = [
   {

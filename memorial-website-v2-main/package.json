@@ -1,0 +1,10 @@
+{
+  "name": "memorial-website",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"node index.js --prefix backend\" \"npm run dev --prefix frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}
