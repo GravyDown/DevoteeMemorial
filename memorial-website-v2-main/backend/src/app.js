@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { Profile } from "./models/profile.models.js";
+import offeringRoutes from "./routes/offering.routes.js";
 
 // Import routes and middleware
 import profileRoutes from './routes/profile.routes.js';
@@ -33,6 +34,7 @@ app.use(cookieParser());
 app.use("/api/profiles", profileRoutes);
 // app.use("/api/auth", authRoutes);  // COMMENT THIS OUT
 // app.use("/api/users", userRoutes);  // COMMENT THIS OUT
+app.use("/api/offerings", offeringRoutes);
 
 // Admin-protected routes - COMMENT OUT ALL OF THESE
 /*
