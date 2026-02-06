@@ -1,186 +1,127 @@
 import { Profile } from "../models/profile.models.js";
-import { uploadImage } from "../utils/cloudnary.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import fs from "fs";
 
-export const createProfile = asyncHandler(async (req, res, next) => {
+/**
+ * Create a new profile
+ */
+export const createProfile = asyncHandler(async (req, res) => {
   try {
     const {
       name,
-      years, // optional now; will be derived if not sent
-      location,
-      description,
-      contributorName,
-      contributorPhone,
-      timeline = [],
-      keyAchievements = [],
-      // Additional fields
-      birthPlace,
-      spiritualLineage,
-      notableWorks,
-      philosophicalContributions,
-      disciples,
-      memorialLocation,
-      // New full dates from client (yyyy-MM-dd)
-      birthDate: birthDateStr,
-      deathDate: deathDateStr,
+      birthDate,
+      deathDate,
       spiritualMaster,
-
-      //new fields(jagruti mataji design)
       honorific,
       associatedTemple,
       ashramRole,
       coreServices,
       accountType,
-    } = req.body;
-
-    // Validate required fields (years no longer required)
-    if (
-      !name ||
-      !location ||
-      !description ||
-      !contributorName ||
-      !contributorPhone
-    ) {
-      throw new ApiError(400, "All required fields must be filled");
-    }
-
-    // Expect full dates from client
-    if (!birthDateStr || !deathDateStr) {
-      throw new ApiError(400, "Birth date and death date are required");
-    }
-
-    // Parse "yyyy-MM-dd" as UTC to avoid timezone shifts
-    const parseYMDToUTC = (ymd) => {
-      const s = Array.isArray(ymd) ? ymd[0] : ymd;
-      const [y, m, d] = (s || "").split("-").map(Number);
-      if (!y || !m || !d) return null;
-      const dt = new Date(Date.UTC(y, m - 1, d));
-      return isNaN(dt.getTime()) ? null : dt;
-    };
-
-    const birthDate = parseYMDToUTC(birthDateStr);
-    const deathDate = parseYMDToUTC(deathDateStr);
-
-    if (!birthDate || !deathDate) {
-      throw new ApiError(
-        400,
-        "Invalid birth/death date format. Expected yyyy-MM-dd"
-      );
-    }
-
-    if (deathDate <= birthDate) {
-      throw new ApiError(400, "Death date must be after birth date");
-    }
-
-    // Optional: basic sanity check on lifespan (<= 150 years)
-    const lifeSpanYears =
-      deathDate.getUTCFullYear() - birthDate.getUTCFullYear();
-    if (lifeSpanYears > 150) {
-      throw new ApiError(400, "Lifespan cannot exceed 150 years");
-    }
-
-    // Derive years string if not provided (back-compat)
-    const yearsString =
-      years && years.length
-        ? Array.isArray(years)
-          ? years[0]
-          : years
-        : `${birthDate.getUTCFullYear()} - ${deathDate.getUTCFullYear()}`;
-
-    // Handle cover image upload
-    let coverImageUrl = "";
-    if (req.files && req.files.coverImage && req.files.coverImage[0]) {
-      const coverImageFile = req.files.coverImage[0];
-      const cloudRes = await uploadImage(coverImageFile.path);
-      if (!cloudRes || !cloudRes.secure_url) {
-        throw new ApiError(500, "Image upload failed");
-      }
-      coverImageUrl = cloudRes.secure_url;
-      // Clean up the temporary file
-      if (fs.existsSync(coverImageFile.path)) {
-        fs.unlinkSync(coverImageFile.path);
-      }
-    } else {
-      throw new ApiError(400, "Cover image is required");
-    }
-
-    // Handle audio files
-    let audioFileUrls = [];
-    if (req.files) {
-      const audioFiles = Object.entries(req.files)
-        .filter(([key]) => key.startsWith("audioFile_"))
-        .map(([_, files]) => files[0]);
-
-      for (const file of audioFiles) {
-        try {
-          const cloudRes = await uploadImage(file.path);
-          if (cloudRes && cloudRes.secure_url) {
-            audioFileUrls.push(cloudRes.secure_url);
-          }
-          // Clean up the temporary file
-          if (fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
-          }
-        } catch (error) {
-          console.error("Error uploading audio file:", error);
-        }
-      }
-    }
-
-    let timelineArr = [];
-    if (typeof timeline === "string") {
-      try {
-        timelineArr = JSON.parse(timeline);
-      } catch {
-        timelineArr = [];
-      }
-    } else if (Array.isArray(timeline)) {
-      timelineArr = timeline;
-    }
-
-    let achievementsArr = [];
-    if (typeof keyAchievements === "string") {
-      try {
-        achievementsArr = JSON.parse(keyAchievements);
-      } catch {
-        achievementsArr = [];
-      }
-    } else if (Array.isArray(keyAchievements)) {
-      achievementsArr = keyAchievements;
-    }
-
-    const profile = await Profile.create({
-      name,
-      years: yearsString, // kept for display/back-compat
       location,
       description,
-      coverImage: coverImageUrl,
       contributorName,
       contributorPhone,
-      timeline: timelineArr,
-      keyAchievements: achievementsArr,
-      status: "pending",
-      // Additional fields
       birthPlace,
       spiritualLineage,
       notableWorks,
       philosophicalContributions,
       disciples,
       memorialLocation,
-      honorific,
-      ashramRole,
-      coreServices: coreServicesArr,
-      accountType,
-      associatedTemple,
-      audioFiles: audioFileUrls,
-      // New full dates
-      birthDate,
-      deathDate,
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !birthDate || !deathDate || !spiritualMaster || !location || !description || !contributorName || !contributorPhone) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    // Check if cover image was uploaded
+    if (!req.files?.coverImage?.[0]) {
+      return res.status(400).json({
+        success: false,
+        message: "Cover image is required",
+      });
+    }
+
+    console.log("Uploading cover image to Cloudinary...");
+    
+    // Upload cover image to Cloudinary
+    const coverImagePath = req.files.coverImage[0].path;
+    const coverImageUpload = await uploadToCloudinary(
+      coverImagePath,
+      "iskcon/profiles",
+      "image"
+    );
+
+    if (!coverImageUpload) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload cover image to Cloudinary",
+      });
+    }
+
+    console.log("Cover image uploaded successfully:", coverImageUpload.secure_url);
+
+    // Handle audio files (if any)
+    const audioFiles = [];
+    for (let i = 0; i < 10; i++) {
+      const fieldName = `audioFile_${i}`;
+      if (req.files?.[fieldName]?.[0]) {
+        console.log(`Uploading audio file ${i}...`);
+        const audioPath = req.files[fieldName][0].path;
+        const audioUpload = await uploadToCloudinary(
+          audioPath,
+          "iskcon/audio",
+          "auto"
+        );
+        
+        if (audioUpload) {
+          audioFiles.push(audioUpload.secure_url);
+          console.log(`Audio file ${i} uploaded:`, audioUpload.secure_url);
+        }
+      }
+    }
+
+    // Parse coreServices if it's a string
+    let parsedCoreServices = coreServices;
+    if (typeof coreServices === "string") {
+      try {
+        parsedCoreServices = JSON.parse(coreServices);
+      } catch (e) {
+        parsedCoreServices = coreServices.split(",").map(s => s.trim());
+      }
+    }
+
+    // Create profile
+    const profile = await Profile.create({
+      name,
+      birthDate: new Date(birthDate),
+      deathDate: new Date(deathDate),
       spiritualMaster,
-      // birthYear/month/day and deathYear/month/day will be auto-derived by schema pre-validate
+      honorific,
+      associatedTemple,
+      ashramRole,
+      coreServices: parsedCoreServices,
+      accountType,
+      location,
+      description,
+      coverImage: coverImageUpload.secure_url, // NOT coverImageUpload.url 
+      contributorName,
+      contributorPhone,
+      birthPlace,
+      spiritualLineage,
+      notableWorks,
+      philosophicalContributions,
+      disciples,
+      memorialLocation,
+      audioFiles,
+      status: "pending", // Default status
     });
+
+    console.log("Profile created successfully:", profile._id);
 
     res.status(201).json({
       success: true,
@@ -188,93 +129,154 @@ export const createProfile = asyncHandler(async (req, res, next) => {
       profile,
     });
   } catch (error) {
-    // Clean up any uploaded files if there's an error
-    if (req.files) {
-      Object.values(req.files)
-        .flat()
-        .forEach((file) => {
-          if (fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
-          }
-        });
-    }
+    console.error("Error creating profile:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create profile",
+    });
+  }
+});
 
-    // Send a proper error response
-    if (error.name === "ValidationError") {
-      res.status(400).json({
+/**
+ * Get all accepted profiles
+ */
+export const getAllProfiles = asyncHandler(async (req, res) => {
+  try {
+    const profiles = await Profile.find({ status: "accepted" }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: profiles.length,
+      profiles,
+    });
+  } catch (error) {
+    console.error("Error fetching profiles:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch profiles",
+    });
+  }
+});
+
+/**
+ * Get all pending profiles (for admin)
+ */
+export const getAllPendingProfiles = asyncHandler(async (req, res) => {
+  try {
+    const profiles = await Profile.find({ status: "pending" }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: profiles.length,
+      profiles,
+    });
+  } catch (error) {
+    console.error("Error fetching pending profiles:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pending profiles",
+    });
+  }
+});
+
+/**
+ * Get profile by ID
+ */
+export const getProfileById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await Profile.findById(id);
+
+    if (!profile) {
+      return res.status(404).json({
         success: false,
-        message: error.message,
+        message: "Profile not found",
       });
-    } else {
-      throw error;
     }
+
+    res.status(200).json({
+      success: true,
+      profile,
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch profile",
+    });
   }
 });
 
-export const getAllPendingProfiles = asyncHandler(async (req, res, next) => {
-  const profiles = await Profile.find({ status: "pending" }).sort({
-    createdAt: -1,
-  });
-  res.json({
-    success: true,
-    profiles,
-  });
+/**
+ * Update profile status (admin)
+ */
+export const updateProfileStatus = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["pending", "accepted", "declined"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status",
+      });
+    }
+
+    const profile = await Profile.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Profile ${status}`,
+      profile,
+    });
+  } catch (error) {
+    console.error("Error updating profile status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile status",
+    });
+  }
 });
 
-export const getAllProfiles = asyncHandler(async (req, res, next) => {
-  const profiles = await Profile.find({ status: "accepted" }).sort({
-    createdAt: -1,
-  });
-  res.json({
-    success: true,
-    profiles,
-  });
+/**
+ * Delete profile
+ */
+export const deleteProfile = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await Profile.findByIdAndDelete(id);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found",
+      });
+    }
+
+    // TODO: Delete associated images from Cloudinary
+    // const publicId = profile.coverImage.split('/').pop().split('.')[0];
+    // await deleteFromCloudinary(publicId);
+
+    res.status(200).json({
+      success: true,
+      message: "Profile deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete profile",
+    });
+  }
 });
-
-export const updateProfileStatus = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  if (!status) {
-    throw new ApiError(400, "Status is required");
-  }
-
-  const profile = await Profile.findByIdAndUpdate(
-    id,
-    { $set: { status: status } },
-    { new: true }
-  );
-
-  if (!profile) {
-    throw new ApiError(404, "Profile not found");
-  }
-
-  res.json({
-    success: true,
-    message: "Profile status updated successfully",
-    profile,
-  });
-});
-
-export const deleteProfile = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const deletedProfile = await Profile.findByIdAndDelete(id);
-  if (!deletedProfile) {
-    return res.status(404).json({ message: "Profile not found" });
-  }
-  res.json({ success: true, message: "Profile deleted successfully" });
-});
-
-export const getProfileById = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const profile = await Profile.findById(id);
-
-  if (!profile) {
-    throw new ApiError(404, "Profile not found");
-  }
-
-  res.json({
-    success: true,
-    profile,
-  });
-}); 
