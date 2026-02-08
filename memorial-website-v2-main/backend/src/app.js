@@ -17,7 +17,7 @@ const app = express();
 
 app.use(cors({
   origin: [
-    "https://iskcon-memorial-1.onrender.com",
+    "https://devotee-memorial.vercel.app/",
     "http://localhost:5173"
   ],
   credentials: true,
