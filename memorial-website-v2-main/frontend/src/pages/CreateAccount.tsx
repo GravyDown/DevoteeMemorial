@@ -99,7 +99,12 @@ export default function CreateAccount() {
               <SelectField 
                 label="Spiritual Title / Honorific" 
                 placeholder="Choose the title" 
-                options={["His Grace", "Her Grace", "His Holiness"]}
+                options={[
+                  {label: "His Grace", value: "His Grace"}, 
+                  {label: "Her Grace", value: "Her Grace"}, 
+                  {label: "His Holiness", value: "His Holiness"}
+                ]}
+                
               />
               <InputField 
                 label="Associated Temple" 
@@ -108,12 +113,22 @@ export default function CreateAccount() {
               <SelectField 
                 label="Ashram / Role" 
                 placeholder="Choose the role" 
-                options={["Brahmachari", "Grihastha", "Vanaprastha", "Sannyasi"]}
+                options={[
+                  {label: "Brahmachari", value: "Brahmachari"}, 
+                  {label: "Grihastha", value: "Grihastha"}, 
+                  {label: "Vanaprastha", value: "Vanaprastha"}, 
+                  {label: "Sannyasi", value: "Sannyasi"}
+                ]}
+                
               />
               <SelectField 
                 label="Core Services" 
                 placeholder="Choose Core service" 
-                options={["Pujari", "Cooking", "Management", "Preaching", "Book Distribution"]}
+                options={[{ label: "Pujari", value: "pujari" },
+    { label: "Cooking", value: "cooking" },
+    { label: "Management", value: "management" },
+    { label: "Preaching", value: "preaching" },
+    { label: "BookDistribution", value: "book_distribution" }]}
               />
             </div>
 
@@ -128,11 +143,13 @@ export default function CreateAccount() {
                 label="Location/City" 
                 placeholder="Location/city" 
               />
-              <UploadBox />
+              {/* <UploadBox /> */}
               <SelectField 
                 label="Account Type" 
                 placeholder="Choose the type of" 
-                options={["Memorial", "Tribute"]}
+                options={[
+                  {label: "Memorial", value: "Memorial"},
+                  {label: "Tribute", value: "Tribute"}]}
               />
             </div>
 
