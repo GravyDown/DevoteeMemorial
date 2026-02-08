@@ -1,6 +1,6 @@
 import fs from "fs";
 import { Offering } from "../models/offering.models.js";
-import { uploadToCloudinary } from "../utils/Cloudinary.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 
