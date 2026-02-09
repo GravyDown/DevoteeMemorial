@@ -38,7 +38,7 @@ export default function MemorialBoard() {
     setLoading(true);
     setError(null);
 
-    fetch("/api/accepted/profiles")
+    fetch(`${VITE_API_URL}/api/accepted/profiles`)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch profiles");
