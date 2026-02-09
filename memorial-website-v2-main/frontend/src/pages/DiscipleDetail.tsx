@@ -8,6 +8,8 @@ import { ArrowRight } from "lucide-react";
 import OfferingCard from "@/components/OfferingCard";
 
 const API_URL = import.meta.env.VITE_API_URL;
+console.log("API BASE URL :", import.meta.env.VITE_API_URL);
+
 
 /* ---------------- Types ---------------- */
 
