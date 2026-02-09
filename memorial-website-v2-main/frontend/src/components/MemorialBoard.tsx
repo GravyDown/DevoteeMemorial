@@ -32,6 +32,7 @@ export default function MemorialBoard() {
   const CARD_WIDTH = 190;
   const GAP = 24;
 
+  const VITE_API_URL = import.meta.env.VITE_API_URL || "";
   // Fetch memorials from backend
   useEffect(() => {
     setLoading(true);
