@@ -43,25 +43,25 @@ This project includes both frontend and backend implementations.
 
 ```
 DevoteeMemorial/
-│
-├── backend/
-│   ├── src/
-│   │   ├── controllers/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── middlewares/
-│   │   ├── utils/
-│   │   ├── db/
-│   │   ├── app.js
-│   │   └── index.js
-│   └── .env
-│
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   └── .env
-│
-└── README.md
+└── memorial-website-v2-main/
+    ├── backend/
+    │   ├── src/
+    │   │   ├── controllers/
+    │   │   ├── models/
+    │   │   ├── routes/
+    │   │   ├── middlewares/
+    │   │   ├── utils/
+    │   │   ├── db/
+    │   │   ├── app.js
+    │   │   └── index.js
+    │   └── .env
+    │
+    ├── frontend/
+    │   ├── src/
+    │   ├── public/
+    │   └── .env
+    │
+    └── README.md
 ```
 
 ---
@@ -75,7 +75,7 @@ Both frontend and backend must run simultaneously.
 1. Navigate to the backend folder:
 
 ```bash
-cd backend
+cd memorial-website-v2-main/backend
 ```
 
 2. Install dependencies:
@@ -110,7 +110,7 @@ Backend runs at: `http://localhost:5000`
 1. Navigate to the frontend folder:
 
 ```bash
-cd frontend
+cd memorial-website-v2-main/frontend
 ```
 
 2. Install dependencies:
@@ -203,5 +203,16 @@ GET    /api/offerings/profile/:profileId
 | ✅ | Offerings display redesigned |
 | ⚠️ | Admin moderation panel (can be extended) |
 
+---
 
+## 👥 Team Members
 
+- Aman Vats
+- Arunabha Mukhopadhyay
+- Anshul Mandekar
+- Garvit Tyagi
+
+---
+
+## 👨‍💻 Maintained By
+**Aman Vats, Arunabha Mukhopadhyay, Anshul Mandekar & Garvit Tyagi**
