@@ -38,13 +38,16 @@ export default function MemorialBoard() {
     setLoading(true);
     setError(null);
 
-    fetch(`${VITE_API_URL}/api/accepted/profiles`)
+    fetch(`${VITE_API_URL}/profiles`)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch profiles");
         }
         const data = await res.json();
-        setMemorials(data);
+        const profiles = Array.isArray(data)
+          ? data
+          : data.data || data.profiles || data.results || [];
+        setMemorials(profiles);
       })
       .catch((err) => {
         setError(err.message);
