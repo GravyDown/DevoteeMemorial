@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
+// ✅ Match exactly what profile.controller.js returns
 interface Memorial {
-  id: string;
+  _id: string; // MongoDB uses _id, NOT id
   name: string;
-  years: string;
-  image: string;
+  birthDate?: string;
+  deathDate?: string;
+  coverImage?: string; // field name in DB is coverImage, not image
   description?: string;
   location?: string;
 }
@@ -33,30 +35,33 @@ export default function MemorialBoard() {
   const GAP = 24;
 
   const VITE_API_URL = import.meta.env.VITE_API_URL || "";
-  // Fetch memorials from backend
+
   useEffect(() => {
     setLoading(true);
     setError(null);
 
     fetch(`${VITE_API_URL}/profiles`)
       .then(async (res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch profiles");
-        }
+        if (!res.ok) throw new Error("Failed to fetch profiles");
         const data = await res.json();
-        const profiles = Array.isArray(data)
+        // API returns { success, count, profiles: [...] }
+        const profiles: Memorial[] = Array.isArray(data)
           ? data
-          : data.data || data.profiles || data.results || [];
+          : data.profiles || data.data || data.results || [];
         setMemorials(profiles);
       })
       .catch((err) => {
         setError(err.message);
         console.error("Error fetching profiles:", err);
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   }, []);
+
+  // ✅ Helper: extract 4-digit year from ISO date string
+  const getYear = (dateStr?: string) => {
+    if (!dateStr) return "?";
+    return new Date(dateStr).getFullYear().toString();
+  };
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -77,20 +82,12 @@ export default function MemorialBoard() {
 
   const handleNextSlide = () => {
     if (!memorials.length) return;
-    setSliderIndex((prev) => {
-      const next = prev + 1;
-      if (next >= memorials.length) return 0;
-      return next;
-    });
+    setSliderIndex((prev) => (prev + 1 >= memorials.length ? 0 : prev + 1));
   };
 
   const handlePrevSlide = () => {
     if (!memorials.length) return;
-    setSliderIndex((prev) => {
-      const next = prev - 1;
-      if (next < 0) return memorials.length - 1;
-      return next;
-    });
+    setSliderIndex((prev) => (prev - 1 < 0 ? memorials.length - 1 : prev - 1));
   };
 
   return (
@@ -103,8 +100,6 @@ export default function MemorialBoard() {
 
       {/* Featured Card */}
       <div className="bg-[#6B8E9B] rounded-3xl p-0 text-white relative overflow-hidden mb-12 shadow-xl">
-        <div className="absolute top-0 right-0 p-8 opacity-20"></div>
-
         <div className="flex flex-col md:flex-row items-stretch">
           <div className="flex-1 p-8 md:p-12 flex flex-col justify-center relative z-10">
             <div className="flex items-center gap-6 mb-6">
@@ -116,12 +111,8 @@ export default function MemorialBoard() {
                 />
               </div>
               <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-2xl font-bold">
-                    HH Gopal Krishna Goswami
-                  </h3>
-                </div>
-                <div className="flex items-center gap-3">
+                <h3 className="text-2xl font-bold">HH Gopal Krishna Goswami</h3>
+                <div className="flex items-center gap-3 mt-1">
                   <span className="text-white/80 text-sm">1944 - 2024</span>
                   <span className="bg-white/20 text-xs px-3 py-1 rounded-full backdrop-blur-sm">
                     Recently departed
@@ -129,7 +120,6 @@ export default function MemorialBoard() {
                 </div>
               </div>
             </div>
-
             <p className="text-white/90 text-lg mb-2 font-medium">
               "His Holiness Gopal Krishna Goswami Maharaj has returned to
               Krishna's abode."
@@ -143,10 +133,16 @@ export default function MemorialBoard() {
           </div>
         </div>
 
-        <button className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-white transition-colors">
+        <button
+          onClick={handlePrevSlide}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-white transition-colors"
+        >
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <button className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-white transition-colors">
+        <button
+          onClick={handleNextSlide}
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 text-white transition-colors"
+        >
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
@@ -186,15 +182,15 @@ export default function MemorialBoard() {
       ) : (
         <div className="relative group">
           <div className="mt-8">
-            {/* MOBILE: vertical list */}
-            <div className="grid grid-cols-1 sm:hidden gap-6">
+            {/* MOBILE: vertical grid */}
+            <div className="grid grid-cols-2 sm:hidden gap-4">
               {memorials.map((memorial) => (
                 <MemorialCard
-                  key={memorial.id}
-                  id={memorial.id}
+                  key={memorial._id}
+                  id={memorial._id} // ✅ _id not id
                   name={memorial.name}
-                  years={memorial.years}
-                  image={memorial.image}
+                  years={`${getYear(memorial.birthDate)} - ${getYear(memorial.deathDate)}`}
+                  image={memorial.coverImage || ""} // ✅ coverImage not image
                   isVerified
                 />
               ))}
@@ -206,18 +202,19 @@ export default function MemorialBoard() {
                 <motion.div
                   className="flex gap-6"
                   animate={{ x: -(sliderIndex * (CARD_WIDTH + GAP)) }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 >
                   {memorials.map((memorial) => (
                     <div
-                      key={memorial.id}
+                      key={memorial._id}
                       className="shrink-0"
                       style={{ width: CARD_WIDTH }}
                     >
                       <MemorialCard
-                        id={memorial.id}
+                        id={memorial._id} // ✅ _id not id
                         name={memorial.name}
-                        years={memorial.years}
-                        image={memorial.image}
+                        years={`${getYear(memorial.birthDate)} - ${getYear(memorial.deathDate)}`}
+                        image={memorial.coverImage || ""} // ✅ coverImage not image
                         isVerified
                       />
                     </div>

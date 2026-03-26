@@ -8,19 +8,16 @@ import { ArrowRight } from "lucide-react";
 import OfferingCard from "@/components/OfferingCard";
 
 const API_URL = import.meta.env.VITE_API_URL;
-console.log("API BASE URL :", import.meta.env.VITE_API_URL);
-
 
 /* ---------------- Types ---------------- */
 
 type Profile = {
   _id: string;
   name: string;
-  years?: string;
-  birthYear?: number;
-  deathYear?: number;
+  birthDate?: string; // ISO date string from MongoDB
+  deathDate?: string; // ISO date string from MongoDB
   location?: string;
-  coverImage?: string;
+  coverImage?: string; // ✅ correct field name from DB
   description?: string;
   honorific?: string;
   spiritualMaster?: string;
@@ -41,29 +38,34 @@ type Offering = {
 
 /* ---------------- Helpers ---------------- */
 
-// Convert YouTube/Vimeo links to embed URLs
+// ✅ Derive "YYYY - YYYY" from ISO date strings
+const getYears = (profile: Profile | null): string => {
+  if (!profile) return "";
+  const birth = profile.birthDate
+    ? new Date(profile.birthDate).getFullYear()
+    : "?";
+  const death = profile.deathDate
+    ? new Date(profile.deathDate).getFullYear()
+    : "?";
+  return `${birth} - ${death}`;
+};
+
 const getEmbedUrl = (url: string): string | null => {
   if (!url) return null;
-
-  // YouTube patterns
-  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const youtubeRegex =
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const youtubeMatch = url.match(youtubeRegex);
-  if (youtubeMatch && youtubeMatch[1]) {
+  if (youtubeMatch?.[1])
     return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
-  }
-
-  // Vimeo pattern
-  const vimeoRegex = /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
+  const vimeoRegex =
+    /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|)(\d+)(?:$|\/|\?)/;
   const vimeoMatch = url.match(vimeoRegex);
-  if (vimeoMatch && vimeoMatch[1]) {
-    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  }
-
-  // If already an embed URL, return as is
-  if (url.includes('youtube.com/embed/') || url.includes('player.vimeo.com/video/')) {
+  if (vimeoMatch?.[1]) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  if (
+    url.includes("youtube.com/embed/") ||
+    url.includes("player.vimeo.com/video/")
+  )
     return url;
-  }
-
   return null;
 };
 
@@ -90,49 +92,56 @@ export default function DiscipleDetail() {
   /* ---------------- Fetch data ---------------- */
 
   useEffect(() => {
-    if (!id) return;
+    // ✅ Guard: don't fire requests if id is missing/undefined
+    if (!id || id === "undefined") {
+      setError("Invalid profile ID.");
+      setLoading(false);
+      return;
+    }
 
-    // Fast UI from router state
+    // Fast UI from router state (only name + image for initial paint)
     if (stateData?.name) {
       setProfile({
         _id: id,
         name: stateData.name,
-        coverImage: stateData.image,
-        years: stateData.years,
+        coverImage: stateData.image, // ✅ coverImage
+        birthDate: stateData.birthDate,
+        deathDate: stateData.deathDate,
       });
     }
 
     setLoading(true);
     setError(null);
 
-    // Profile
+    // Fetch full profile
     fetch(`${API_URL}/profiles/${id}`)
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok)
           throw new Error(data?.message || "Failed to fetch profile");
+        // API returns { success, profile: {...} }
         setProfile(data.profile ?? data);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
 
-    // Offerings
+    // Fetch offerings
     setOfferingsLoading(true);
     fetch(`${API_URL}/offerings/profile/${id}`)
       .then(async (res) => {
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setOfferings(data.offerings ?? []);
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (res.ok && data.success) setOfferings(data.offerings ?? []);
+        } catch {
+          console.error("Offerings response was not JSON:", text.slice(0, 100));
         }
       })
       .catch((err) => console.error("Offerings fetch error:", err))
       .finally(() => setOfferingsLoading(false));
-  }, [id, stateData]);
+  }, [id]);
 
-  const years =
-    profile?.years ??
-    `${profile?.birthYear ?? "?"} - ${profile?.deathYear ?? "?"}`;
-
+  const years = getYears(profile);
   const services = profile?.coreServices ?? [];
 
   /* ---------------- UI ---------------- */
@@ -148,18 +157,21 @@ export default function DiscipleDetail() {
           <div className="p-10 text-center text-red-600">{error}</div>
         ) : profile ? (
           <>
-            {/* Header */}
+            {/* Header banner */}
             <div className="relative mb-16">
               <div className="w-full h-[240px] bg-[#804B23] rounded-b-[32px]" />
               <div className="absolute -bottom-12 left-6 md:left-16">
                 <Avatar className="w-32 h-32 md:w-40 md:h-40 border-[6px] border-[#FFF1DF] bg-white shadow-lg">
-                  <AvatarImage src={profile.coverImage} />
-                  <AvatarFallback>DP</AvatarFallback>
+                  {/* ✅ coverImage from profile — Cloudinary URL stored directly */}
+                  <AvatarImage src={profile.coverImage} alt={profile.name} />
+                  <AvatarFallback>
+                    {profile.name?.charAt(0) ?? "D"}
+                  </AvatarFallback>
                 </Avatar>
               </div>
             </div>
 
-            {/* Info */}
+            {/* Info row */}
             <div className="px-6 md:px-16 flex justify-between flex-wrap gap-6 mb-8">
               <div>
                 <h1 className="text-4xl font-bold text-[#5D4037]">
@@ -204,7 +216,7 @@ export default function DiscipleDetail() {
 
               {offeringsLoading ? (
                 <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#804B23] border-t-transparent"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#804B23] border-t-transparent" />
                   <p className="mt-4 text-[#8D6E63]">Loading offerings…</p>
                 </div>
               ) : offerings.length === 0 ? (
