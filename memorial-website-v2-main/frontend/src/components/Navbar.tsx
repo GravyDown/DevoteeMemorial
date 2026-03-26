@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, UserCircle } from "lucide-react";
+import { Menu, X, LogOut, UserCircle, PlusCircle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,13 +16,9 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path;
   const closeMenu = () => setIsMenuOpen(false);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
@@ -36,35 +32,39 @@ export default function Navbar() {
     navigate("/auth");
   };
 
+  // ✅ Figma: Home, Disciples, Quotes, About, Contact
   const navLinks = [
     { label: "Home", path: "/" },
     { label: "Disciples", path: "/disciples" },
-    { label: "Offerings", path: "/offerings" },
+    { label: "Quotes", path: "/quotes" },
     { label: "About", path: "/about" },
     { label: "Contact", path: "/contact" },
   ];
 
+  const displayName = user?.username || user?.email?.split("@")[0] || "Profile";
+
   return (
     <nav className="w-full bg-[#FFF0DD] sticky top-0 z-50">
       <div className="page-container h-[72px] flex items-center justify-between">
+
         {/* Logo */}
-        <div className="flex items-center">
+        <Link to="/" className="flex items-center shrink-0">
           <img
             src="https://harmless-tapir-303.convex.cloud/api/storage/f4dcb599-cf9e-423f-89a5-93f35ad8f8d0"
             alt="Logo"
             className="h-10 w-auto object-contain"
           />
-        </div>
+        </Link>
 
-        {/* Desktop Nav Links */}
-        <div className="hidden md:flex items-center gap-6 text-[#5D4037] font-medium text-[15px]">
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-7 text-[#5D4037] font-medium text-[15px]">
           {navLinks.map(({ label, path }) => (
             <Link
               key={path}
               to={path}
               className={`py-1 border-b-2 transition-colors ${
                 isActive(path)
-                  ? "border-[#8D6E63] text-[#8D6E63]"
+                  ? "border-[#804B23] text-[#804B23] font-semibold"
                   : "border-transparent hover:border-[#8D6E63] hover:text-[#8D6E63]"
               }`}
             >
@@ -73,63 +73,59 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Desktop Auth Area */}
-        <div className="hidden md:block">
+        {/* Desktop auth */}
+        <div className="hidden md:flex items-center gap-3">
           {isLoading ? (
             <div className="w-[100px] h-[40px] bg-[#8D6E63]/20 animate-pulse rounded-full" />
           ) : isAuthenticated ? (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-2 bg-[#8D6E63] hover:bg-[#795548] text-white rounded-full px-4 h-[40px] text-[15px] transition-colors"
+            <>
+              <Link
+                to="/create-account"
+                className="flex items-center gap-1.5 text-[#804B23] font-medium text-[14px] border border-[#804B23]/40 rounded-full px-4 h-[40px] hover:bg-[#804B23]/10 transition-colors whitespace-nowrap"
               >
-                <UserCircle className="w-5 h-5" />
-                <span className="max-w-[120px] truncate">
-                  {user?.username || "Profile"}
-                </span>
-              </button>
+                <PlusCircle className="w-4 h-4 shrink-0" />
+                Create Memorial
+              </Link>
 
-              {isDropdownOpen && (
-                <div className="absolute right-0 top-[48px] bg-white rounded-2xl shadow-lg border border-[#8D6E63]/10 py-2 w-56 z-50">
-                  {/* User info */}
-                  <div className="px-4 py-2 border-b border-[#8D6E63]/10">
-                    <p className="text-xs text-[#8D6E63]">Signed in as</p>
-                    <p className="text-sm font-semibold text-[#5D4037] truncate">
-                      {user?.email || user?.username}
-                    </p>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen((prev) => !prev)}
+                  className="flex items-center gap-2 bg-[#804B23] hover:bg-[#6d3f1d] text-white rounded-full px-4 h-[40px] text-[15px] transition-colors"
+                >
+                  <UserCircle className="w-5 h-5 shrink-0" />
+                  <span className="max-w-[120px] truncate">{displayName}</span>
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute right-0 top-[48px] bg-white rounded-2xl shadow-lg border border-[#8D6E63]/10 py-2 w-56 z-50">
+                    <div className="px-4 py-2 border-b border-[#8D6E63]/10">
+                      <p className="text-xs text-[#8D6E63]">Signed in as</p>
+                      <p className="text-sm font-semibold text-[#5D4037] truncate">{user?.username}</p>
+                      <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
                   </div>
-
-                  {/* ✅ NEW — Create Devotee Profile link */}
-                  <Link
-                    to="/create-account"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[#5D4037] hover:bg-[#FFF1DF] transition-colors"
-                  >
-                    + Create Devotee Profile
-                  </Link>
-
-                  {/* Logout */}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            </>
           ) : (
+            // ✅ Figma: dark brown rounded pill
             <Button
               onClick={() => navigate("/auth")}
-              className="bg-[#8D6E63] hover:bg-[#795548] text-white rounded-full px-6 h-[40px] text-[15px]"
+              className="bg-[#804B23] hover:bg-[#6d3f1d] text-white rounded-full px-6 h-[40px] text-[15px] font-medium"
             >
               Login →
             </Button>
           )}
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile toggle */}
         <button
           className="md:hidden text-[#5D4037]"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -139,7 +135,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-[#FFF0DD] border-t border-[#8D6E63]/10">
           <div className="page-container py-6 flex flex-col gap-4">
@@ -148,7 +144,7 @@ export default function Navbar() {
                 key={path}
                 to={path}
                 onClick={closeMenu}
-                className="text-[#5D4037] text-lg"
+                className={`text-[#5D4037] text-lg font-medium ${isActive(path) ? "text-[#804B23] font-semibold" : ""}`}
               >
                 {label}
               </Link>
@@ -156,24 +152,21 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <>
-                <div className="text-sm text-[#8D6E63] font-medium px-1">
-                  {user?.username || user?.email}
+                <div className="border-t border-[#8D6E63]/10 pt-4 space-y-0.5">
+                  <p className="text-xs text-[#8D6E63]">Signed in as</p>
+                  <p className="text-sm font-semibold text-[#5D4037]">{user?.username}</p>
+                  <p className="text-xs text-gray-400">{user?.email}</p>
                 </div>
-
-                {/* ✅ NEW — mobile create devotee link */}
                 <Link
                   to="/create-account"
                   onClick={closeMenu}
-                  className="text-[#804B23] font-semibold text-base"
+                  className="flex items-center gap-2 text-[#804B23] font-medium text-base border border-[#804B23]/40 rounded-full px-4 py-2.5 hover:bg-[#804B23]/10 transition-colors"
                 >
-                  + Create Devotee Profile
+                  <PlusCircle className="w-4 h-4" />
+                  Create Devotee Memorial
                 </Link>
-
                 <Button
-                  onClick={() => {
-                    closeMenu();
-                    handleLogout();
-                  }}
+                  onClick={() => { closeMenu(); handleLogout(); }}
                   variant="outline"
                   className="border-red-300 text-red-600 w-full rounded-full h-[44px] flex items-center gap-2"
                 >
@@ -182,13 +175,10 @@ export default function Navbar() {
               </>
             ) : (
               <Button
-                onClick={() => {
-                  closeMenu();
-                  navigate("/auth");
-                }}
-                className="bg-[#8D6E63] text-white w-full rounded-full h-[44px]"
+                onClick={() => { closeMenu(); navigate("/auth"); }}
+                className="bg-[#804B23] text-white w-full rounded-full h-[44px]"
               >
-                Login
+                Login →
               </Button>
             )}
           </div>
