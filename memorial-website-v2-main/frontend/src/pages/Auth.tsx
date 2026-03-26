@@ -22,15 +22,16 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
 
   // Google credential handler
   const handleCredentialResponse = async (response: { credential: string }) => {
-    setError("");
-    try {
-      await api.post("/users/google", { credential: response.credential });
-      refresh();
-      navigate("/");
-    } catch (e: any) {
-      setError(e?.response?.data?.error || "Google login failed.");
-    }
-  };
+  setError("");
+  try {
+    const res = await api.post("/api/users/google", { credential: response.credential });
+    await refresh();
+    const role = res.data?.user?.role;
+    navigate(role === "admin" ? "/admin" : "/home");
+  } catch (e: any) {
+    setError(e?.response?.data?.error || "Google login failed.");
+  }
+};
 
   // Check if already logged in
   useEffect(() => {
@@ -88,11 +89,17 @@ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setError("");
   try {
-    await api.post("/users/login", { email, password });
-    await refresh(); // ← make this await so user loads before navigate
-    navigate("/");
+    const res = await api.post("/users/login", { email, password });
+    await refresh();
+    // Role-based redirect
+    const role = res.data?.user?.role;
+    if (role === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/");
+    }
   } catch (e: any) {
-    setError(e?.response?.data?.error || "Login failed.");
+    setError(e?.response?.data?.message || "Login failed.");
   }
 };
 

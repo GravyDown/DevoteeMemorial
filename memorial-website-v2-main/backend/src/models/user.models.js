@@ -35,10 +35,15 @@ const userSchema = new mongoose.Schema(
     temple: { type: String, default: "" },
     location: { type: String, default: "" },
     accountType: { type: String, default: "" },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const User = mongoose.model("User", userSchema);

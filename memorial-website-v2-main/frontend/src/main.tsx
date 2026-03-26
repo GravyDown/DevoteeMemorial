@@ -8,6 +8,7 @@ import "./index.css";
 import "./types/global.d.ts";
 import DiscipleDetail from "./pages/DiscipleDetail.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard.tsx"));
 
 // Lazy load route components for better code splitting
 const Home = lazy(() => import("./pages/Home.tsx"));
@@ -78,6 +79,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/offerings/new" element={<CreateOffering />} />
             <Route path="/disciples/:id" element={<DiscipleDetail />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
             <Route
               path="/create-account"
