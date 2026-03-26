@@ -13,6 +13,8 @@ const Disciples = lazy(() => import("./pages/Disciples.tsx"));
 const Quotes = lazy(() => import("./pages/Quotes.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
+const ForgotPassword = lazy(() => import("./components/ForgotPassword.tsx"));
+const ResetPassword = lazy(() => import("./components/ResetPassword.tsx"));
 
 // Lazy load route components for better code splitting
 const Home = lazy(() => import("./pages/Home.tsx"));
@@ -88,6 +90,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/quotes" element={<Quotes />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
             <Route
               path="/create-account"

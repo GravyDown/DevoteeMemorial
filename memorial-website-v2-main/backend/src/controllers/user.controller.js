@@ -284,3 +284,83 @@ export const googleLogin = asyncHandler(async (req, res) => {
     },
   });
 });
+
+
+// ================= VERIFY IDENTITY (Step 1 of password reset) =================
+// Checks that email + phone both match a real local account
+export const verifyResetIdentity = asyncHandler(async (req, res) => {
+  const { email, phone } = req.body;
+ 
+  if (!email || !phone) {
+    throw new ApiError(400, "Email and phone number are required");
+  }
+ 
+  const user = await User.findOne({ email });
+ 
+  // Generic message — don't reveal whether email exists
+  const GENERIC_ERROR = "No account found with this email and phone combination.";
+ 
+  if (!user) throw new ApiError(404, GENERIC_ERROR);
+ 
+  // Block Google-only accounts — they have no password to reset
+  if (user.provider === "google" && !user.password) {
+    throw new ApiError(400, "This account uses Google Sign-In. Please log in with Google.");
+  }
+ 
+  // Normalize phone: strip spaces/dashes for comparison
+  const normalize = (p) => p.replace(/[\s\-\(\)]/g, "");
+  const storedPhone = normalize(user.phone || "");
+  const inputPhone = normalize(phone);
+ 
+  if (!storedPhone || storedPhone !== inputPhone) {
+    throw new ApiError(404, GENERIC_ERROR);
+  }
+ 
+  // Identity verified — send back a short-lived session flag via a signed token
+  // (no DB write needed — stateless verification)
+  const verifyToken = jwt.sign(
+    { id: user._id, email: user.email, purpose: "password_reset" },
+    process.env.JWT_SECRET,
+    { expiresIn: "10m" } // user has 10 minutes to set new password
+  );
+ 
+  res.json({
+    success: true,
+    message: "Identity verified",
+    verifyToken, // sent to frontend, included in Step 2
+  });
+});
+ 
+// ================= RESET PASSWORD (Step 2 — no email required) =================
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { verifyToken, newPassword } = req.body;
+ 
+  if (!verifyToken || !newPassword) {
+    throw new ApiError(400, "Verification token and new password are required");
+  }
+ 
+  if (newPassword.length < 6) {
+    throw new ApiError(400, "Password must be at least 6 characters");
+  }
+ 
+  // Verify the short-lived token from Step 1
+  let decoded;
+  try {
+    decoded = jwt.verify(verifyToken, process.env.JWT_SECRET);
+  } catch {
+    throw new ApiError(400, "Verification expired. Please start over.");
+  }
+ 
+  if (decoded.purpose !== "password_reset") {
+    throw new ApiError(400, "Invalid verification token");
+  }
+ 
+  const user = await User.findById(decoded.id).select("+password");
+  if (!user) throw new ApiError(404, "User not found");
+ 
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.provider = "local";
+  await user.save();
+ 
+  res.json({ success: true, message: "Password reset successfully. You can now log in." });
+});

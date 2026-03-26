@@ -22,16 +22,18 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
 
   // Google credential handler
   const handleCredentialResponse = async (response: { credential: string }) => {
-  setError("");
-  try {
-    const res = await api.post("/api/users/google", { credential: response.credential });
-    await refresh();
-    const role = res.data?.user?.role;
-    navigate(role === "admin" ? "/admin" : "/home");
-  } catch (e: any) {
-    setError(e?.response?.data?.error || "Google login failed.");
-  }
-};
+    setError("");
+    try {
+      const res = await api.post("/api/users/google", {
+        credential: response.credential,
+      });
+      await refresh();
+      const role = res.data?.user?.role;
+      navigate(role === "admin" ? "/admin" : "/home");
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "Google login failed.");
+    }
+  };
 
   // Check if already logged in
   useEffect(() => {
@@ -82,38 +84,43 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
         cancelled = true;
       };
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  try {
-    const res = await api.post("/users/login", { email, password });
-    await refresh();
-    // Role-based redirect
-    const role = res.data?.user?.role;
-    if (role === "admin") {
-      navigate("/admin");
-    } else {
-      navigate("/");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const res = await api.post("/users/login", { email, password });
+      await refresh();
+      // Role-based redirect
+      const role = res.data?.user?.role;
+      if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Login failed.");
     }
-  } catch (e: any) {
-    setError(e?.response?.data?.message || "Login failed.");
-  }
-};
+  };
 
   // ✅ Guard for "Create Departed Devotee's Account" link
   const handleCreateDevoteeClick = (e: React.MouseEvent) => {
     if (!isAuthenticated) {
       e.preventDefault();
-      toast.error("Please log in first to create a Departed Devotee's account.", {
-        description: "You need to be signed in to access this feature.",
-        action: {
-          label: "Got it",
-          onClick: () => {},
+      toast.error(
+        "Please log in first to create a Departed Devotee's account.",
+        {
+          description: "You need to be signed in to access this feature.",
+          action: {
+            label: "Got it",
+            onClick: () => {},
+          },
         },
-      });
+      );
     }
   };
 
@@ -174,12 +181,12 @@ const handleSubmit = async (e: React.FormEvent) => {
               />
             </div>
             <div className="flex justify-end">
-              <button
-                type="button"
-                className="text-xs text-[#8D6E63] hover:underline"
+              <Link
+                to="/forgot-password"
+                className="text-xs text-[#8D6E63] hover:underline hover:text-[#804B23] transition-colors"
               >
                 Forgot your password?
-              </button>
+              </Link>
             </div>
             <Button
               type="submit"

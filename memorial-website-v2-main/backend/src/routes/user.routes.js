@@ -6,6 +6,8 @@ import {
   getUserProfile, 
   updateUserProfile,
   googleLogin,
+  verifyResetIdentity,   // ← ADD
+  resetPassword,
 } from "../controllers/user.controller.js";
 import { authenticateToken, requireAdmin } from '../middlewares/auth.middleware.js';
 
@@ -16,6 +18,8 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
 router.post("/google", googleLogin);
+router.post("/verify-identity", verifyResetIdentity);
+router.post("/reset-password", resetPassword);
 
 // Protected routes
 router.use(authenticateToken); // Apply authentication middleware to routes below
