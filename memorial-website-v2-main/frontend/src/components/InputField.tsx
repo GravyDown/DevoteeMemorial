@@ -2,19 +2,27 @@ import { Input } from "@/components/ui/input";
 
 interface InputFieldProps {
   label: string;
-  placeholder: string;
+  placeholder?: string; // ✅ OPTIONAL NOW
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean; // ✅ added support
 }
 
-export default function InputField({ label, placeholder, value, onChange }: InputFieldProps) {
+export default function InputField({
+  label,
+  placeholder = "", // ✅ default value
+  value,
+  onChange,
+  disabled,
+}: InputFieldProps) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-[#5D4037] font-medium text-sm">{label}</label>
-      <Input 
+      <Input
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        disabled={disabled} // ✅ now works
         className="h-12 rounded-xl border-gray-200 bg-white text-[#5D4037] placeholder:text-gray-400 focus-visible:ring-[#8D6E63] shadow-none"
       />
     </div>

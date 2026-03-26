@@ -13,7 +13,7 @@ type SelectOption = {
 
 interface SelectFieldProps {
   label: string;
-  placeholder: string;
+  placeholder?: string; // ✅ optional
   options: SelectOption[];
   value?: string;
   onChange?: (value: string) => void;
@@ -21,7 +21,7 @@ interface SelectFieldProps {
 
 export default function SelectField({
   label,
-  placeholder,
+  placeholder = "Select option", // ✅ default value
   options,
   value,
   onChange,
@@ -34,13 +34,7 @@ export default function SelectField({
 
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white text-[#5D4037] focus:ring-[#8D6E63] shadow-none">
-          <SelectValue
-            placeholder={
-              <span className="text-gray-400">
-                {placeholder}
-              </span>
-            }
-          />
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
 
         <SelectContent>

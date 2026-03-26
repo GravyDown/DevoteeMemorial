@@ -7,7 +7,7 @@ import offeringRoutes from "./routes/offering.routes.js";
 // Routes
 import profileRoutes from "./routes/profile.routes.js";
 // import authRoutes from "./routes/auth.routes.js";
-// import userRoutes from "./routes/user.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
 // Middleware
 // import { authenticateToken, requireAdmin } from "./middlewares/auth.middleware.js";
@@ -33,7 +33,7 @@ app.use(cookieParser());
 // ================= ROUTES =================
 app.use("/api/profiles", profileRoutes);
 // app.use("/api/auth", authRoutes);
-// app.use("/api/users", userRoutes);
+app.use("/api/users", userRoutes);
 
 app.use("/api/offerings", offeringRoutes);
 

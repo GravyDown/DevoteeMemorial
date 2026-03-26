@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
+import User from "../models/user.models.js";
+import bcrypt from "bcryptjs";
 
 // Use environment variables (fallback only for development)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@iskcon.org";
@@ -109,5 +111,48 @@ export const verifyToken = (req, res) => {
       success: false,
       error: "Invalid or expired token",
     });
+  }
+};
+
+// Regular User Login
+export const userLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const payload = { id: user._id, email: user.email, role: user.role || "user" };
+
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 15 * 60 * 1000,
+      path: "/",
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    res.json({ user: payload });
+
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
   }
 };

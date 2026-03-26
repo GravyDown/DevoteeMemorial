@@ -7,6 +7,7 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 import "./types/global.d.ts";
 import DiscipleDetail from "./pages/DiscipleDetail.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
 // Lazy load route components for better code splitting
 const Home = lazy(() => import("./pages/Home.tsx"));
@@ -14,6 +15,7 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const CreateAccount = lazy(() => import("./pages/CreateAccount.tsx"));
 const CreateOffering = lazy(() => import("./pages/CreateOffering.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const Register = lazy(() => import("./pages/Register.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -33,8 +35,6 @@ function ScrollToTop() {
 
   return null;
 }
-
-
 
 function RouteSyncer() {
   const location = useLocation();
@@ -69,11 +69,24 @@ createRoot(document.getElementById("root")!).render(
         <Suspense fallback={<RouteLoading />}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<AuthPage redirectAfterAuth="/" />} /> {/* TODO: change redirect after auth to correct page */}
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/auth"
+              element={<AuthPage redirectAfterAuth="/" />}
+            />{" "}
+            {/* TODO: change redirect after auth to correct page */}
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/offerings/new" element={<CreateOffering />} />
             <Route path="/disciples/:id" element={<DiscipleDetail />} />
             <Route path="*" element={<NotFound />} />
+            <Route
+              path="/create-account"
+              element={
+                <ProtectedRoute>
+                  <CreateAccount />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </Suspense>
       </BrowserRouter>

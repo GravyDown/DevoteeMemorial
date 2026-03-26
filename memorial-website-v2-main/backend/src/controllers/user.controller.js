@@ -20,7 +20,8 @@ const generateRefreshToken = (user) =>
 
 // ================= REGISTER =================
 export const registerUser = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, phone, temple, location, accountType } =
+    req.body;
 
   if (!username || !email || !password) {
     throw new ApiError(400, "All fields are required");
@@ -37,13 +38,17 @@ export const registerUser = asyncHandler(async (req, res) => {
     username,
     email,
     password: hashedPassword,
+    phone: phone || "",
+    temple: temple || "",
+    location: location || "",
+    accountType: accountType || "",
   });
 
   try {
     await sendEmail(
       email,
       "Welcome to ISKCON Memorial",
-      `Dear ${username},\n\nThank you for registering!\n\nHare Krishna!`
+      `Dear ${username},\n\nThank you for registering!\n\nHare Krishna!`,
     );
   } catch (err) {
     console.error("Email failed:", err.message);
@@ -156,7 +161,9 @@ export const logoutUser = asyncHandler(async (req, res) => {
 
 // ================= PROFILE =================
 export const getUserProfile = asyncHandler(async (req, res) => {
-  res.json({ success: true, user: req.user });
+  const user = await User.findById(req.user.id).select("-password");
+  if (!user) throw new ApiError(404, "User not found");
+  res.json({ success: true, user });
 });
 
 // ================= UPDATE =================

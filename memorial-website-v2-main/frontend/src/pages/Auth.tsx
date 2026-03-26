@@ -4,7 +4,9 @@ import Navbar from "@/components/Navbar";
 import { ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
-import api from "@/lib/api"; // your axios instance
+import { toast } from "sonner";
+import api from "@/lib/api";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AuthPageProps {
   redirectAfterAuth?: string;
@@ -14,28 +16,36 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  // ✅ Move checkAuthStatus here or import from your auth context
-  const checkAuthStatus = async () => {
-    // e.g. re-fetch user or update global auth state
-  };
+  const { isAuthenticated, refresh } = useAuth();
 
-  // ✅ Google credential handler — inside the component
+  // Google credential handler
   const handleCredentialResponse = async (response: { credential: string }) => {
     setError("");
-    setSuccess("");
     try {
-      await api.post("/api/users/google", { credential: response.credential });
-      await checkAuthStatus();
-      navigate(redirectAfterAuth);
+      await api.post("/users/google", { credential: response.credential });
+      refresh();
+      navigate("/");
     } catch (e: any) {
       setError(e?.response?.data?.error || "Google login failed.");
     }
   };
 
-  // ✅ Render Google button
+  // Check if already logged in
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const res = await api.get("/auth/verify");
+        if (res.data.success) navigate("/home");
+      } catch {
+        // not logged in, stay on page
+      }
+    };
+    checkLogin();
+  }, []);
+
+  // Render Google button
   useEffect(() => {
     let cancelled = false;
     const init = () => {
@@ -66,20 +76,37 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
       const timer = setInterval(() => {
         if (init()) clearInterval(timer);
       }, 200);
-      return () => { clearInterval(timer); cancelled = true; };
+      return () => {
+        clearInterval(timer);
+        cancelled = true;
+      };
     }
     return () => { cancelled = true; };
-  }, []); // ✅ handleCredentialResponse must be stable — see note below
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    try {
-      await api.post("/api/users/login", { email, password });
-      await checkAuthStatus();
-      navigate(redirectAfterAuth);
-    } catch (e: any) {
-      setError(e?.response?.data?.error || "Login failed.");
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  try {
+    await api.post("/users/login", { email, password });
+    await refresh(); // ← make this await so user loads before navigate
+    navigate("/");
+  } catch (e: any) {
+    setError(e?.response?.data?.error || "Login failed.");
+  }
+};
+
+  // ✅ Guard for "Create Departed Devotee's Account" link
+  const handleCreateDevoteeClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      toast.error("Please log in first to create a Departed Devotee's account.", {
+        description: "You need to be signed in to access this feature.",
+        action: {
+          label: "Got it",
+          onClick: () => {},
+        },
+      });
     }
   };
 
@@ -95,7 +122,10 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
             </button>
           </div>
           <div className="flex-1 flex justify-center">
-            <Link to="/create-account" className="pb-4 px-12 text-[#8D6E63] font-medium text-lg hover:text-[#5D4037] transition-colors">
+            <Link
+              to="/register"
+              className="pb-4 px-12 text-[#8D6E63] font-medium text-lg hover:text-[#5D4037] transition-colors"
+            >
               Create Account
             </Link>
           </div>
@@ -103,16 +133,19 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
 
         <div className="w-full max-w-[900px] bg-white rounded-3xl shadow-sm p-12 md:p-20 min-h-[600px] flex flex-col items-center">
           <h1 className="text-[#5D4037] font-bold text-3xl mb-2">Log In</h1>
-          <p className="text-[#8D6E63]/70 text-sm mb-8">Sign in with Email or Google</p>
+          <p className="text-[#8D6E63]/70 text-sm mb-8">
+            Sign in with Email or Google
+          </p>
 
-          {/* ✅ Google button renders here */}
           <div id="googleSignInDiv" className="mb-6" />
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
           <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
             <div className="space-y-2">
-              <label className="text-[#5D4037] font-medium text-sm">Email ID</label>
+              <label className="text-[#5D4037] font-medium text-sm">
+                Email ID
+              </label>
               <Input
                 type="email"
                 placeholder="Enter email"
@@ -122,7 +155,9 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[#5D4037] font-medium text-sm">Password</label>
+              <label className="text-[#5D4037] font-medium text-sm">
+                Password
+              </label>
               <Input
                 type="password"
                 placeholder="Enter Password"
@@ -132,7 +167,10 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
               />
             </div>
             <div className="flex justify-end">
-              <button type="button" className="text-xs text-[#8D6E63] hover:underline">
+              <button
+                type="button"
+                className="text-xs text-[#8D6E63] hover:underline"
+              >
                 Forgot your password?
               </button>
             </div>
@@ -145,8 +183,13 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
           </form>
         </div>
 
+        {/* ✅ Guarded link — shows toast if not logged in */}
         <div className="mt-12">
-          <Link to="/create-account" className="text-[#804B23] font-bold text-lg flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link
+            to="/create-account"
+            onClick={handleCreateDevoteeClick}
+            className="text-[#804B23] font-bold text-lg flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
             Create Departed Devotee's Account <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
