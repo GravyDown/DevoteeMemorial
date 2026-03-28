@@ -24,7 +24,7 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
   const handleCredentialResponse = async (response: { credential: string }) => {
     setError("");
     try {
-      const res = await api.post("/api/users/google", {
+      const res = await api.post("/users/google", {
         credential: response.credential,
       });
       await refresh();

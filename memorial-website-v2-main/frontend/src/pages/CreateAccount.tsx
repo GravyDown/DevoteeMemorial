@@ -45,6 +45,10 @@ export default function CreateAccount() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // 🔥 ADD THIS STATE
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string>("");
 
   // ── Auth guard ───────────────────────────────────────────
   useEffect(() => {
@@ -83,12 +87,33 @@ export default function CreateAccount() {
   // ── Validation ───────────────────────────────────────────
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) newErrors.name = "Devotee name is required";
+
     if (!formData.spiritualMaster.trim())
       newErrors.spiritualMaster = "Initiating Guru is required";
+
     if (!formData.location.trim()) newErrors.location = "Location is required";
+
     if (!formData.about.trim())
       newErrors.about = "A short description is required";
+    else if (formData.about.trim().length < 20)
+      newErrors.about = "Description must be at least 20 characters";
+
+    if (!formData.birthDate) newErrors.birthDate = "Birth date is required";
+
+    if (!formData.deathDate) newErrors.deathDate = "Death date is required";
+
+    if (formData.birthDate && formData.deathDate) {
+      const birth = new Date(formData.birthDate);
+      const death = new Date(formData.deathDate);
+      if (death <= birth)
+        newErrors.deathDate = "Death date must be after birth date";
+    }
+
+    if (!coverFile) newErrors.coverImage = "Profile photo is required";
+    if (!bannerFile) newErrors.bannerImage = "Banner image is required";
+
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
       toast.error("Please fill in all required fields before continuing.");
@@ -140,6 +165,8 @@ export default function CreateAccount() {
       payload.append("initiatedGuru", formData.initiatedGuru);
       payload.append("temple", formData.temple);
       if (coverFile) payload.append("coverImage", coverFile);
+      // ADD after coverImage append:
+      if (bannerFile) payload.append("bannerImage", bannerFile);
 
       await api.post("/profiles", payload, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -199,8 +226,9 @@ export default function CreateAccount() {
           {step === 1 && (
             <>
               <div className="grid md:grid-cols-2 gap-8">
-                {/* Left */}
+                {/* ── Left Column ── */}
                 <div className="space-y-6">
+                  {/* Devotee Name */}
                   <div>
                     <InputField
                       label="Departed Devotee Name *"
@@ -208,159 +236,350 @@ export default function CreateAccount() {
                       value={formData.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                     />
-                    {errors.name && (
-                      <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                    {errors.name ? (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>⚠</span> {errors.name}
+                      </p>
+                    ) : (
+                      <p className="text-[#8D6E63]/50 text-xs mt-1">
+                        Enter the full spiritual name of the devotee
+                      </p>
                     )}
                   </div>
 
-                  <SelectField
-                    label="Spiritual Title / Honorific"
-                    placeholder="Choose the title"
-                    options={[
-                      { label: "His Grace", value: "His Grace" },
-                      { label: "Her Grace", value: "Her Grace" },
-                      { label: "His Holiness", value: "His Holiness" },
-                      { label: "Prabhu", value: "Prabhu" },
-                      { label: "Mataji", value: "Mataji" },
-                    ]}
-                    value={formData.honorific}
-                    onChange={(val) => handleChange("honorific", val)}
-                  />
+                  {/* Honorific */}
+                  <div>
+                    <SelectField
+                      label="Spiritual Title / Honorific"
+                      placeholder="Choose the title"
+                      options={[
+                        { label: "His Grace", value: "His Grace" },
+                        { label: "Her Grace", value: "Her Grace" },
+                        { label: "His Holiness", value: "His Holiness" },
+                        { label: "Prabhu", value: "Prabhu" },
+                        { label: "Mataji", value: "Mataji" },
+                      ]}
+                      value={formData.honorific}
+                      onChange={(val) => handleChange("honorific", val)}
+                    />
+                    <p className="text-[#8D6E63]/50 text-xs mt-1">Optional</p>
+                  </div>
 
-                  <InputField
-                    label="Associated Temple"
-                    placeholder="Connected temple"
-                    value={formData.associatedTemple}
-                    onChange={(e) =>
-                      handleChange("associatedTemple", e.target.value)
-                    }
-                  />
+                  {/* Associated Temple */}
+                  <div>
+                    <InputField
+                      label="Associated Temple"
+                      placeholder="Connected temple"
+                      value={formData.associatedTemple}
+                      onChange={(e) =>
+                        handleChange("associatedTemple", e.target.value)
+                      }
+                    />
+                    <p className="text-[#8D6E63]/50 text-xs mt-1">Optional</p>
+                  </div>
 
-                  <SelectField
-                    label="Ashram / Role"
-                    placeholder="Choose the role"
-                    options={[
-                      { label: "Brahmachari", value: "Brahmachari" },
-                      { label: "Grihastha", value: "Grihastha" },
-                      { label: "Vanaprastha", value: "Vanaprastha" },
-                      { label: "Sannyasi", value: "Sannyasi" },
-                    ]}
-                    value={formData.ashramRole}
-                    onChange={(val) => handleChange("ashramRole", val)}
-                  />
+                  {/* Ashram Role */}
+                  <div>
+                    <SelectField
+                      label="Ashram / Role"
+                      placeholder="Choose the role"
+                      options={[
+                        { label: "Brahmachari", value: "Brahmachari" },
+                        { label: "Grihastha", value: "Grihastha" },
+                        { label: "Vanaprastha", value: "Vanaprastha" },
+                        { label: "Sannyasi", value: "Sannyasi" },
+                      ]}
+                      value={formData.ashramRole}
+                      onChange={(val) => handleChange("ashramRole", val)}
+                    />
+                    <p className="text-[#8D6E63]/50 text-xs mt-1">Optional</p>
+                  </div>
 
-                  <SelectField
-                    label="Core Services"
-                    placeholder="Choose Core service"
-                    options={[
-                      { label: "Pujari", value: "pujari" },
-                      { label: "Cooking", value: "cooking" },
-                      { label: "Management", value: "management" },
-                      { label: "Preaching", value: "preaching" },
-                      {
-                        label: "Book Distribution",
-                        value: "book_distribution",
-                      },
-                    ]}
-                    value={formData.coreServices[0] || ""}
-                    onChange={(val) => handleChange("coreServices", [val])}
-                  />
+                  {/* Core Services */}
+                  <div>
+                    <SelectField
+                      label="Core Services"
+                      placeholder="Choose Core service"
+                      options={[
+                        { label: "Pujari", value: "pujari" },
+                        { label: "Cooking", value: "cooking" },
+                        { label: "Management", value: "management" },
+                        { label: "Preaching", value: "preaching" },
+                        {
+                          label: "Book Distribution",
+                          value: "book_distribution",
+                        },
+                      ]}
+                      value={formData.coreServices[0] || ""}
+                      onChange={(val) => handleChange("coreServices", [val])}
+                    />
+                    <p className="text-[#8D6E63]/50 text-xs mt-1">Optional</p>
+                  </div>
 
+                  {/* About */}
                   <div>
                     <label className="text-sm font-medium text-[#5D4037]">
                       About the Departed Devotee *
                     </label>
                     <Textarea
-                      placeholder="Details"
+                      placeholder="Write a short description about the devotee's life and service... (minimum 20 characters)"
                       value={formData.about}
                       onChange={(e) => handleChange("about", e.target.value)}
                       className={`mt-2 min-h-[120px] rounded-xl border-gray-200 bg-white text-[#5D4037] placeholder:text-gray-400 resize-none p-4 ${
-                        errors.about ? "border-red-400" : ""
+                        errors.about
+                          ? "border-red-400 focus-visible:ring-red-300"
+                          : ""
                       }`}
                     />
-                    {errors.about && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.about}
+                    <div className="flex items-center justify-between mt-1">
+                      {errors.about ? (
+                        <p className="text-red-500 text-xs flex items-center gap-1">
+                          <span>⚠</span> {errors.about}
+                        </p>
+                      ) : (
+                        <p className="text-[#8D6E63]/50 text-xs">
+                          Minimum 20 characters
+                        </p>
+                      )}
+                      <p
+                        className={`text-xs ${
+                          formData.about.length < 20
+                            ? "text-[#8D6E63]/50"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {formData.about.length} chars
                       </p>
-                    )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Right */}
+                {/* ── Right Column ── */}
                 <div className="space-y-6">
+                  {/* Initiating Guru */}
                   <div>
                     <InputField
                       label="Initiating Guru *"
-                      placeholder="Guru's name"
+                      placeholder="Guru's initiated name"
                       value={formData.spiritualMaster}
                       onChange={(e) =>
                         handleChange("spiritualMaster", e.target.value)
                       }
                     />
-                    {errors.spiritualMaster && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.spiritualMaster}
+                    {errors.spiritualMaster ? (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>⚠</span> {errors.spiritualMaster}
+                      </p>
+                    ) : (
+                      <p className="text-[#8D6E63]/50 text-xs mt-1">
+                        The spiritual master who initiated the devotee
                       </p>
                     )}
                   </div>
 
-                  <DateInputGroup
-                    label="Life Span"
-                    birthDate={formData.birthDate}
-                    deathDate={formData.deathDate}
-                    onBirthDateChange={(val) => handleChange("birthDate", val)}
-                    onDeathDateChange={(val) => handleChange("deathDate", val)}
-                  />
-
+                  {/* Life Span */}
                   <div>
-                    <InputField
-                      label="Location / City *"
-                      placeholder="Location/city"
-                      value={formData.location}
-                      onChange={(e) => handleChange("location", e.target.value)}
+                    <DateInputGroup
+                      label="Life Span *"
+                      birthDate={formData.birthDate}
+                      deathDate={formData.deathDate}
+                      onBirthDateChange={(val) =>
+                        handleChange("birthDate", val)
+                      }
+                      onDeathDateChange={(val) =>
+                        handleChange("deathDate", val)
+                      }
                     />
-                    {errors.location && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.location}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-[#5D4037]">
-                      Profile Photo Upload (Required)
-                    </label>
-                    <div className="border-dashed border-2 border-gray-300 p-6 rounded-xl text-center mt-2 hover:border-[#8D6E63] transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          setCoverFile(e.target.files?.[0] || null)
-                        }
-                        className="w-full text-sm text-gray-500"
-                      />
-                      {coverFile && (
-                        <p className="text-xs text-green-600 mt-2">
-                          ✓ {coverFile.name}
+                    <div className="mt-1 space-y-0.5">
+                      {errors.birthDate && (
+                        <p className="text-red-500 text-xs flex items-center gap-1">
+                          <span>⚠</span> {errors.birthDate}
+                        </p>
+                      )}
+                      {errors.deathDate && (
+                        <p className="text-red-500 text-xs flex items-center gap-1">
+                          <span>⚠</span> {errors.deathDate}
+                        </p>
+                      )}
+                      {!errors.birthDate && !errors.deathDate && (
+                        <p className="text-[#8D6E63]/50 text-xs">
+                          Both birth and death dates are required
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <SelectField
-                    label="Account Type"
-                    placeholder="Choose the type"
-                    options={[
-                      { label: "Memorial", value: "Memorial" },
-                      { label: "Tribute", value: "Tribute" },
-                    ]}
-                    value={formData.accountType}
-                    onChange={(val) => handleChange("accountType", val)}
-                  />
+                  {/* Location */}
+                  <div>
+                    <InputField
+                      label="Location / City *"
+                      placeholder="City where devotee served"
+                      value={formData.location}
+                      onChange={(e) => handleChange("location", e.target.value)}
+                    />
+                    {errors.location ? (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>⚠</span> {errors.location}
+                      </p>
+                    ) : (
+                      <p className="text-[#8D6E63]/50 text-xs mt-1">
+                        City or temple location where they primarily served
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Photo Upload */}
+                  <div>
+                    <label className="text-sm font-medium text-[#5D4037]">
+                      Profile Photo *
+                    </label>
+                    <div
+                      className={`border-dashed border-2 p-6 rounded-xl text-center mt-2 transition-colors ${
+                        errors.coverImage
+                          ? "border-red-400 bg-red-50/30"
+                          : coverFile
+                            ? "border-green-400 bg-green-50/30"
+                            : "border-gray-300 hover:border-[#8D6E63]"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setCoverFile(file);
+                          if (file && errors.coverImage) {
+                            setErrors((prev) => {
+                              const next = { ...prev };
+                              delete next.coverImage;
+                              return next;
+                            });
+                          }
+                        }}
+                        className="w-full text-sm text-gray-500"
+                      />
+                      {coverFile ? (
+                        <p className="text-xs text-green-600 mt-2 font-medium">
+                          ✓ {coverFile.name}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-[#8D6E63]/50 mt-2">
+                          PNG, JPG up to 10MB
+                        </p>
+                      )}
+                    </div>
+                    {errors.coverImage ? (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>⚠</span> {errors.coverImage}
+                      </p>
+                    ) : (
+                      <p className="text-[#8D6E63]/50 text-xs mt-1">
+                        A clear photo of the devotee is required
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Banner Image Upload */}
+                  <div>
+                    <label className="text-sm font-medium text-[#5D4037]">
+                      Cover Banner Image *
+                    </label>
+                    <p className="text-[#8D6E63]/50 text-xs mb-2">
+                      This will appear as the wide banner on the profile page.
+                      Best size: 1280×300px landscape photo.
+                    </p>
+
+                    {/* Preview */}
+                    {bannerPreview && (
+                      <div className="w-full h-24 rounded-xl overflow-hidden mb-2 border border-gray-200">
+                        <img
+                          src={bannerPreview}
+                          alt="Banner preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div
+                      className={`border-dashed border-2 p-5 rounded-xl text-center transition-colors ${
+                        errors.bannerImage
+                          ? "border-red-400 bg-red-50/30"
+                          : bannerFile
+                            ? "border-green-400 bg-green-50/30"
+                            : "border-gray-300 hover:border-[#8D6E63]"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setBannerFile(file);
+                          if (file) {
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onload = (ev) =>
+                              setBannerPreview(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                            // Clear error
+                            if (errors.bannerImage) {
+                              setErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.bannerImage;
+                                return next;
+                              });
+                            }
+                          } else {
+                            setBannerPreview("");
+                          }
+                        }}
+                        className="w-full text-sm text-gray-500"
+                      />
+                      {bannerFile ? (
+                        <p className="text-xs text-green-600 mt-2 font-medium">
+                          ✓ {bannerFile.name}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-[#8D6E63]/50 mt-2">
+                          PNG, JPG — landscape photo recommended
+                        </p>
+                      )}
+                    </div>
+
+                    {errors.bannerImage ? (
+                      <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                        <span>⚠</span> {errors.bannerImage}
+                      </p>
+                    ) : (
+                      <p className="text-[#8D6E63]/50 text-xs mt-1">
+                        A wide landscape photo looks best
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Account Type */}
+                  <div>
+                    <SelectField
+                      label="Account Type *"
+                      placeholder="Choose the type"
+                      options={[{ label: "Memorial", value: "Memorial" }]}
+                      value={formData.accountType}
+                      onChange={(val) => handleChange("accountType", val)}
+                    />
+                    <p className="text-[#8D6E63]/50 text-xs mt-1">
+                      Memorial — for departed devotees
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end mt-10">
+              {/* Required fields note */}
+              <p className="text-xs text-[#8D6E63]/60 mt-8">
+                Fields marked with{" "}
+                <span className="text-red-500 font-bold">*</span> are required
+              </p>
+
+              <div className="flex justify-end mt-4">
                 <Button
                   onClick={() => {
                     if (validateStep1()) setStep(2);

@@ -32,12 +32,12 @@ const profileSchema = new mongoose.Schema(
       required: false,
     },
 
-    spiritualMaster: { type: String, required: true},
+    spiritualMaster: { type: String, required: true },
     honorific: { type: String },
     associatedTemple: { type: String }, // frontend "Associated Temple"
-    ashramRole: { type: String },       // frontend "Ashram / Role"
-    coreServices: [{ type: String }],   // frontend "Core Services" (array)
-    accountType: { type: String },      // "Memorial" | "Tribute"
+    ashramRole: { type: String }, // frontend "Ashram / Role"
+    coreServices: [{ type: String }], // frontend "Core Services" (array)
+    accountType: { type: String }, // "Memorial" | "Tribute"
 
     location: {
       type: String,
@@ -99,8 +99,12 @@ const profileSchema = new mongoose.Schema(
         type: String, // URLs to audio files
       },
     ],
+    bannerImage: {
+      type: String, // Cloudinary URL
+      default: "",
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Keep split parts and years in sync automatically
@@ -128,7 +132,6 @@ profileSchema.pre("validate", function () {
   if (this.birthYear && this.deathYear) {
     this.years = `${this.birthYear} - ${this.deathYear}`;
   }
-
 });
 
 // Server-side validation: death must be after birth

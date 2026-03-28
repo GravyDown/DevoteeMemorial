@@ -2,6 +2,7 @@ import { Profile } from "../models/profile.models.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import fs from "fs";
 
 /**
  * Create a new profile
@@ -30,15 +31,24 @@ export const createProfile = asyncHandler(async (req, res) => {
       memorialLocation,
     } = req.body;
 
-    // Validate required fields
-    if (!name || !birthDate || !deathDate || !spiritualMaster || !location || !description || !contributorName || !contributorPhone) {
+    // ── Validate required fields ─────────────────────────
+    if (
+      !name ||
+      !birthDate ||
+      !deathDate ||
+      !spiritualMaster ||
+      !location ||
+      !description ||
+      !contributorName ||
+      !contributorPhone
+    ) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
       });
     }
 
-    // Check if cover image was uploaded
+    // ── Cover image required ─────────────────────────────
     if (!req.files?.coverImage?.[0]) {
       return res.status(400).json({
         success: false,
@@ -46,14 +56,13 @@ export const createProfile = asyncHandler(async (req, res) => {
       });
     }
 
+    // ── Upload cover image ───────────────────────────────
     console.log("Uploading cover image to Cloudinary...");
-    
-    // Upload cover image to Cloudinary
     const coverImagePath = req.files.coverImage[0].path;
     const coverImageUpload = await uploadToCloudinary(
       coverImagePath,
       "iskcon/profiles",
-      "image"
+      "image",
     );
 
     if (!coverImageUpload) {
@@ -62,10 +71,31 @@ export const createProfile = asyncHandler(async (req, res) => {
         message: "Failed to upload cover image to Cloudinary",
       });
     }
+    console.log(
+      "Cover image uploaded successfully:",
+      coverImageUpload.secure_url,
+    );
 
-    console.log("Cover image uploaded successfully:", coverImageUpload.secure_url);
+    // ── Upload banner image (optional) ───────────────────
+    let bannerImageUrl = "";
+    if (req.files?.bannerImage?.[0]) {
+      console.log("Uploading banner image to Cloudinary...");
+      const bannerFile = req.files.bannerImage[0];
+      const bannerUpload = await uploadToCloudinary(
+        bannerFile.path,
+        "iskcon/banners",
+        "image",
+      );
+      if (bannerUpload?.secure_url) {
+        bannerImageUrl = bannerUpload.secure_url;
+        console.log("Banner image uploaded successfully:", bannerImageUrl);
+      }
+      if (fs.existsSync(bannerFile.path)) {
+        fs.unlinkSync(bannerFile.path);
+      }
+    }
 
-    // Handle audio files (if any)
+    // ── Upload audio files (optional) ────────────────────
     const audioFiles = [];
     for (let i = 0; i < 10; i++) {
       const fieldName = `audioFile_${i}`;
@@ -75,9 +105,8 @@ export const createProfile = asyncHandler(async (req, res) => {
         const audioUpload = await uploadToCloudinary(
           audioPath,
           "iskcon/audio",
-          "auto"
+          "auto",
         );
-        
         if (audioUpload) {
           audioFiles.push(audioUpload.secure_url);
           console.log(`Audio file ${i} uploaded:`, audioUpload.secure_url);
@@ -85,17 +114,17 @@ export const createProfile = asyncHandler(async (req, res) => {
       }
     }
 
-    // Parse coreServices if it's a string
+    // ── Parse coreServices ───────────────────────────────
     let parsedCoreServices = coreServices;
     if (typeof coreServices === "string") {
       try {
         parsedCoreServices = JSON.parse(coreServices);
       } catch (e) {
-        parsedCoreServices = coreServices.split(",").map(s => s.trim());
+        parsedCoreServices = coreServices.split(",").map((s) => s.trim());
       }
     }
 
-    // Create profile
+    // ── Create profile ───────────────────────────────────
     const profile = await Profile.create({
       name,
       birthDate: new Date(birthDate),
@@ -108,7 +137,8 @@ export const createProfile = asyncHandler(async (req, res) => {
       accountType,
       location,
       description,
-      coverImage: coverImageUpload.secure_url, // NOT coverImageUpload.url 
+      coverImage: coverImageUpload.secure_url,
+      bannerImage: bannerImageUrl,
       contributorName,
       contributorPhone,
       birthPlace,
@@ -118,7 +148,7 @@ export const createProfile = asyncHandler(async (req, res) => {
       disciples,
       memorialLocation,
       audioFiles,
-      status: "pending", // Default status
+      status: "pending",
     });
 
     console.log("Profile created successfully:", profile._id);
@@ -142,7 +172,9 @@ export const createProfile = asyncHandler(async (req, res) => {
  */
 export const getAllProfiles = asyncHandler(async (req, res) => {
   try {
-    const profiles = await Profile.find({ status: "accepted" }).sort({ createdAt: -1 });
+    const profiles = await Profile.find({ status: "accepted" }).sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({
       success: true,
@@ -163,7 +195,9 @@ export const getAllProfiles = asyncHandler(async (req, res) => {
  */
 export const getAllPendingProfiles = asyncHandler(async (req, res) => {
   try {
-    const profiles = await Profile.find({ status: "pending" }).sort({ createdAt: -1 });
+    const profiles = await Profile.find({ status: "pending" }).sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({
       success: true,
@@ -225,7 +259,7 @@ export const updateProfileStatus = asyncHandler(async (req, res) => {
     const profile = await Profile.findByIdAndUpdate(
       id,
       { status },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!profile) {
@@ -263,10 +297,6 @@ export const deleteProfile = asyncHandler(async (req, res) => {
         message: "Profile not found",
       });
     }
-
-    // TODO: Delete associated images from Cloudinary
-    // const publicId = profile.coverImage.split('/').pop().split('.')[0];
-    // await deleteFromCloudinary(publicId);
 
     res.status(200).json({
       success: true,
