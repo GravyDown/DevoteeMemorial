@@ -283,7 +283,7 @@ export default function DiscipleDetail() {
 
             {/* ── About ── */}
             <div className="max-w-[1280px] mx-auto px-6 md:px-16 mb-10">
-              <div className="bg-[#FFF8E7] p-8 rounded-2xl border border-[#8D6E63]/10">
+              <div className="p-8 rounded-2xl border border-[#8D6E63]/40">
                 <h2 className="text-lg font-bold text-[#5D4037] mb-3">
                   About disciple
                 </h2>
