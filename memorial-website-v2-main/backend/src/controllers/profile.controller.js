@@ -7,6 +7,7 @@ import fs from "fs";
 /**
  * Create a new profile
  */
+
 export const createProfile = asyncHandler(async (req, res) => {
   try {
     const {
@@ -30,7 +31,7 @@ export const createProfile = asyncHandler(async (req, res) => {
       disciples,
       memorialLocation,
     } = req.body;
-
+    //easter egg
     // ── Validate required fields ─────────────────────────
     if (
       !name ||
