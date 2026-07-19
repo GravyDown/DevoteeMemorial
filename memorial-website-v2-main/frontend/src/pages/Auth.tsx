@@ -40,7 +40,7 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
     const checkLogin = async () => {
       try {
         const res = await api.get("/auth/verify");
-        if (res.data.success) navigate("/home");
+        if (res.data.success) navigate("/");
       } catch {
         // not logged in, stay on page
       }
