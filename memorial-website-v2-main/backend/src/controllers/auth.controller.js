@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
-import User from "../models/user.models.js";
+import { User } from "../models/user.models.js";
 import bcrypt from "bcryptjs";
 
 // Use environment variables (fallback only for development)
