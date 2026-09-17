@@ -82,7 +82,14 @@ createRoot(document.getElementById("root")!).render(
               element={<AuthPage redirectAfterAuth="/" />}
             />{" "}
             {/* TODO: change redirect after auth to correct page */}
-            <Route path="/create-account" element={<CreateAccount />} />
+            <Route
+              path="/create-account"
+              element={
+                <ProtectedRoute>
+                  <CreateAccount />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/offerings/new" element={<CreateOffering />} />
             <Route path="/disciples/:id" element={<DiscipleDetail />} />
             <Route path="/admin" element={<AdminDashboard />} />
@@ -93,14 +100,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
-            <Route
-              path="/create-account"
-              element={
-                <ProtectedRoute>
-                  <CreateAccount />
-                </ProtectedRoute>
-              }
-            />
           </Routes>
         </Suspense>
       </BrowserRouter>

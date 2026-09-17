@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, CheckCircle, Eye, EyeOff } from "lucide-react";
 import api from "@/lib/api";
 
+import { getErrorMessage } from "@/lib/utils";
+
 type Step = "verify" | "reset" | "done";
 
 export default function ForgotPassword() {
@@ -43,8 +45,10 @@ export default function ForgotPassword() {
       setStep("reset");
     } catch (err: any) {
       setError(
-        err?.response?.data?.message ||
-        "No account found with this email and phone combination."
+        getErrorMessage(
+          err,
+          "No account found with this email and phone combination."
+        )
       );
     } finally {
       setLoading(false);
@@ -71,8 +75,10 @@ export default function ForgotPassword() {
       setStep("done");
     } catch (err: any) {
       setError(
-        err?.response?.data?.message ||
-        "Reset failed. Please start over."
+        getErrorMessage(
+          err,
+          "Reset failed. Please start over."
+        )
       );
       // If verifyToken expired, send back to step 1
       if (err?.response?.status === 400) {

@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -65,9 +66,7 @@ export default function Register() {
       setTimeout(() => navigate("/auth"), 1500);
     } catch (err: any) {
       setError(
-        err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          "Registration failed. Please try again.",
+        getErrorMessage(err, "Registration failed. Please try again.")
       );
     } finally {
       setLoading(false);

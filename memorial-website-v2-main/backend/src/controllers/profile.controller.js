@@ -35,7 +35,6 @@ export const createProfile = asyncHandler(async (req, res) => {
     // ── Validate required fields ─────────────────────────
     if (
       !name ||
-      !birthDate ||
       !deathDate ||
       !spiritualMaster ||
       !location ||

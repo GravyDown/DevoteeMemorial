@@ -7,21 +7,33 @@ import { authenticateToken, requireAdmin } from "./middlewares/auth.middleware.j
 
 // Routes
 import profileRoutes from "./routes/profile.routes.js";
-// import authRoutes from "./routes/auth.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
-
-// Middleware
-// import { authenticateToken, requireAdmin } from "./middlewares/auth.middleware.js";
 
 const app = express();
 
 // ================= MIDDLEWARE =================
+const allowedOrigins = [
+  "https://devotee-memorial-ten.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      "https://devotee-memorial-ten.vercel.app",
-      "http://localhost:5173",
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -33,9 +45,8 @@ app.use(cookieParser());
 
 // ================= ROUTES =================
 app.use("/api/profiles", profileRoutes);
-// app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-
 app.use("/api/offerings", offeringRoutes);
 
 // ================= PUBLIC ROUTE =================
@@ -120,6 +131,7 @@ app.get("/api/admin/declined", authenticateToken, requireAdmin, async (req, res)
 
 // Delete a profile
 app.delete("/api/admin/profiles/:id", authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
   try {
     const deleted = await Profile.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ error: "Profile not found" });
@@ -127,6 +139,19 @@ app.delete("/api/admin/profiles/:id", authenticateToken, requireAdmin, async (re
   } catch {
     res.status(500).json({ error: "Failed to delete profile" });
   }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || err.status || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message,
+    error: message,
+    errors: err.errors || [],
+  });
 });
 
 export { app };

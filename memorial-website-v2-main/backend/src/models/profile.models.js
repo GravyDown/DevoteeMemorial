@@ -11,7 +11,7 @@ const profileSchema = new mongoose.Schema(
     // New full dates
     birthDate: {
       type: Date,
-      required: true,
+      required: false,
     },
     deathDate: {
       type: Date,

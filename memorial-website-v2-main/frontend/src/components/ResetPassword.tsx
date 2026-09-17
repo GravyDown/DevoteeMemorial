@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
 
+import { getErrorMessage } from "@/lib/utils";
+
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -42,7 +44,7 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      await api.post("/api/users/reset-password", {
+      await api.post("/users/reset-password", {
         token,
         email,
         newPassword,
@@ -52,8 +54,10 @@ export default function ResetPassword() {
       setTimeout(() => navigate("/auth"), 3000);
     } catch (err: any) {
       setError(
-        err?.response?.data?.message ||
-        "Reset failed. The link may have expired. Please request a new one."
+        getErrorMessage(
+          err,
+          "Reset failed. The link may have expired. Please request a new one."
+        )
       );
     } finally {
       setLoading(false);

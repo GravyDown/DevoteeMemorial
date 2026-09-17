@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Share2, Heart, MapPin, Calendar } from "lucide-react";
 import OfferingCard from "@/components/OfferingCard";
 import { toast } from "sonner";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 
 /* ── Types ── */
 type Profile = {
@@ -100,25 +100,22 @@ export default function DiscipleDetail() {
     setLoading(true);
     setError(null);
 
-    fetch(`${API_URL}/profiles/${id}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok)
-          throw new Error(data?.message || "Failed to fetch profile");
+    api
+      .get(`/profiles/${id}`)
+      .then((res) => {
+        const data = res.data;
         setProfile(data.profile ?? data);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(getErrorMessage(err, "Failed to fetch profile")))
       .finally(() => setLoading(false));
 
     setOfferingsLoading(true);
-    fetch(`${API_URL}/offerings/profile/${id}`)
-      .then(async (res) => {
-        const text = await res.text();
-        try {
-          const data = JSON.parse(text);
-          if (res.ok && data.success) setOfferings(data.offerings ?? []);
-        } catch {
-          console.error("Offerings not JSON:", text.slice(0, 100));
+    api
+      .get(`/offerings/profile/${id}`)
+      .then((res) => {
+        const data = res.data;
+        if (data && data.success) {
+          setOfferings(data.offerings ?? []);
         }
       })
       .catch((err) => console.error("Offerings error:", err))

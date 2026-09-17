@@ -10,6 +10,7 @@ import { useNavigate } from "react-router";
 import api from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function CreateAccount() {
   const navigate = useNavigate();
@@ -50,6 +51,9 @@ export default function CreateAccount() {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>("");
 
+  // Whether the devotee's birth date is unknown
+  const [birthDateUnknown, setBirthDateUnknown] = useState(false);
+
   // ── Auth guard ───────────────────────────────────────────
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -84,6 +88,20 @@ export default function CreateAccount() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  // ── Birth date "unknown" toggle handler ──────────────────
+  const handleBirthDateUnknownChange = (val: boolean) => {
+    setBirthDateUnknown(val);
+    if (val) {
+      // clear the birth date value since it's now marked unknown
+      setFormData((prev) => ({ ...prev, birthDate: "" }));
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.birthDate;
+        return next;
+      });
+    }
+  };
+
   // ── Validation ───────────────────────────────────────────
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -100,11 +118,13 @@ export default function CreateAccount() {
     else if (formData.about.trim().length < 20)
       newErrors.about = "Description must be at least 20 characters";
 
-    if (!formData.birthDate) newErrors.birthDate = "Birth date is required";
+    // Birth date is only required if it hasn't been marked as unknown
+    if (!birthDateUnknown && !formData.birthDate)
+      newErrors.birthDate = "Birth date is required";
 
     if (!formData.deathDate) newErrors.deathDate = "Death date is required";
 
-    if (formData.birthDate && formData.deathDate) {
+    if (!birthDateUnknown && formData.birthDate && formData.deathDate) {
       const birth = new Date(formData.birthDate);
       const death = new Date(formData.deathDate);
       if (death <= birth)
@@ -112,7 +132,7 @@ export default function CreateAccount() {
     }
 
     if (!coverFile) newErrors.coverImage = "Profile photo is required";
-    if (!bannerFile) newErrors.bannerImage = "Banner image is required";
+    // Banner image is now optional — no validation here
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -152,7 +172,8 @@ export default function CreateAccount() {
       payload.append("location", formData.location);
       payload.append("description", formData.about);
       payload.append("accountType", formData.accountType);
-      payload.append("birthDate", formData.birthDate);
+      // birthDate is sent as empty string when unknown — backend treats it as not provided
+      payload.append("birthDate", birthDateUnknown ? "" : formData.birthDate);
       payload.append("deathDate", formData.deathDate);
       payload.append("coreServices", JSON.stringify(formData.coreServices));
       // Step 2 data
@@ -165,7 +186,7 @@ export default function CreateAccount() {
       payload.append("initiatedGuru", formData.initiatedGuru);
       payload.append("temple", formData.temple);
       if (coverFile) payload.append("coverImage", coverFile);
-      // ADD after coverImage append:
+      // Banner image is optional — only appended if provided
       if (bannerFile) payload.append("bannerImage", bannerFile);
 
       await api.post("/profiles", payload, {
@@ -176,8 +197,10 @@ export default function CreateAccount() {
       navigate("/");
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.error ||
-          "Failed to create profile. Please try again.",
+        getErrorMessage(
+          err,
+          "Failed to create profile. Please try again."
+        )
       );
     } finally {
       setLoading(false);
@@ -389,6 +412,8 @@ export default function CreateAccount() {
                       onDeathDateChange={(val) =>
                         handleChange("deathDate", val)
                       }
+                      birthDateUnknown={birthDateUnknown}
+                      onBirthDateUnknownChange={handleBirthDateUnknownChange}
                     />
                     <div className="mt-1 space-y-0.5">
                       {errors.birthDate && (
@@ -403,7 +428,9 @@ export default function CreateAccount() {
                       )}
                       {!errors.birthDate && !errors.deathDate && (
                         <p className="text-[#8D6E63]/50 text-xs">
-                          Both birth and death dates are required
+                          {birthDateUnknown
+                            ? "Death date is required — birth date marked as unknown"
+                            : "Both birth and death dates are required"}
                         </p>
                       )}
                     </div>
@@ -479,10 +506,10 @@ export default function CreateAccount() {
                     )}
                   </div>
 
-                  {/* Banner Image Upload */}
+                  {/* Banner Image Upload (Optional) */}
                   <div>
                     <label className="text-sm font-medium text-[#5D4037]">
-                      Cover Banner Image *
+                      Cover Banner Image
                     </label>
                     <p className="text-[#8D6E63]/50 text-xs mb-2">
                       This will appear as the wide banner on the profile page.
@@ -552,7 +579,7 @@ export default function CreateAccount() {
                       </p>
                     ) : (
                       <p className="text-[#8D6E63]/50 text-xs mt-1">
-                        A wide landscape photo looks best
+                        Optional — a wide landscape photo looks best
                       </p>
                     )}
                   </div>

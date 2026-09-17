@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 
+import { getErrorMessage } from "@/lib/utils";
+
 interface AuthPageProps {
   redirectAfterAuth?: string;
 }
@@ -29,9 +31,9 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
       });
       await refresh();
       const role = res.data?.user?.role;
-      navigate(role === "admin" ? "/admin" : "/home");
+      navigate(role === "admin" ? "/admin" : "/");
     } catch (e: any) {
-      setError(e?.response?.data?.error || "Google login failed.");
+      setError(getErrorMessage(e, "Google login failed."));
     }
   };
 
@@ -103,7 +105,7 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
         navigate("/");
       }
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Login failed.");
+      setError(getErrorMessage(e, "Login failed."));
     }
   };
 

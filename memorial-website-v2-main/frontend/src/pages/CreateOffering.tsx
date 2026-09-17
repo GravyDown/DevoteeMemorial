@@ -6,7 +6,9 @@ import FormButton from "@/components/FormButton";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL;
+import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
+import { toast } from "sonner";
 
 type DevoteeOption = {
   label: string;
@@ -61,12 +63,12 @@ export default function CreateOffering() {
   useEffect(() => {
     const fetchDevotees = async () => {
       try {
-        const res = await fetch(`${API_URL}/profiles`);
-        if (!res.ok) throw new Error("Failed to fetch profiles");
-        const data = await res.json();
+        const res = await api.get("/profiles");
+        const data = res.data;
 
-        if (data.success) {
-          const options = data.profiles.map((p: any) => ({
+        if (data.success || Array.isArray(data.profiles) || Array.isArray(data)) {
+          const profileList = Array.isArray(data) ? data : data.profiles || [];
+          const options = profileList.map((p: any) => ({
             label: p.name,
             value: p._id,
           }));
@@ -85,7 +87,7 @@ export default function CreateOffering() {
   }, [location.state]);
 
   /* ---------------- Submit ---------------- */
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedDevotee || !message) {
       alert("Please select a devotee and write a message");
       return;
@@ -104,38 +106,28 @@ export default function CreateOffering() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${API_URL}/offerings`);
+    try {
+      await api.post("/offerings", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+          }
+        },
+      });
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        setUploadProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    };
-
-    xhr.onload = () => {
+      alert("Offering submitted successfully 🙏");
+      setMessage("");
+      setRelation("");
+      setImages([]);
+      setAudios([]);
+      setVideoLink("");
+      setUploadProgress(0);
+    } catch (err: any) {
+      alert(getErrorMessage(err, "Upload failed"));
+    } finally {
       setIsUploading(false);
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        alert("Offering submitted successfully 🙏");
-
-        setMessage("");
-        setRelation("");
-        setImages([]);
-        setAudios([]);
-        setVideoLink("");
-        setUploadProgress(0);
-      } else {
-        alert("Upload failed");
-      }
-    };
-
-    xhr.onerror = () => {
-      setIsUploading(false);
-      alert("Network error");
-    };
-
-    xhr.send(formData);
+    }
   };
 
   return (

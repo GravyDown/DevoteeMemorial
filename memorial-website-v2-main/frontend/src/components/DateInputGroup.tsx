@@ -2,10 +2,12 @@ import { Input } from "@/components/ui/input";
 
 interface DateInputGroupProps {
   label: string;
-  birthDate?: string;       // format: yyyy-MM-dd
-  deathDate?: string;       // format: yyyy-MM-dd
+  birthDate?: string;
+  deathDate?: string;
   onBirthDateChange?: (val: string) => void;
   onDeathDateChange?: (val: string) => void;
+  birthDateUnknown?: boolean;
+  onBirthDateUnknownChange?: (val: boolean) => void;
 }
 
 export default function DateInputGroup({
@@ -14,9 +16,9 @@ export default function DateInputGroup({
   deathDate = "",
   onBirthDateChange,
   onDeathDateChange,
+  birthDateUnknown = false,
+  onBirthDateUnknownChange,
 }: DateInputGroupProps) {
-
-  // Split "yyyy-MM-dd" into parts
   const parseParts = (date: string) => {
     const [y = "", m = "", d = ""] = date.split("-");
     return { d, m, y };
@@ -25,7 +27,6 @@ export default function DateInputGroup({
   const birth = parseParts(birthDate);
   const death = parseParts(deathDate);
 
-  // Rebuild "yyyy-MM-dd" when any part changes
   const handleBirth = (part: "d" | "m" | "y", val: string) => {
     const updated = { ...birth, [part]: val };
     onBirthDateChange?.(`${updated.y}-${updated.m}-${updated.d}`);
@@ -36,11 +37,18 @@ export default function DateInputGroup({
     onDeathDateChange?.(`${updated.y}-${updated.m}-${updated.d}`);
   };
 
+  const handleUnknownToggle = (checked: boolean) => {
+    onBirthDateUnknownChange?.(checked);
+    if (checked) {
+      // clear birth date fields when marked unknown
+      onBirthDateChange?.("");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <label className="text-[#5D4037] font-medium text-sm">{label}</label>
       <div className="flex flex-wrap items-center gap-4">
-
         {/* Birth Date */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-[#5D4037]/70 font-medium whitespace-nowrap">
@@ -50,24 +58,38 @@ export default function DateInputGroup({
             placeholder="DD"
             maxLength={2}
             value={birth.d}
+            disabled={birthDateUnknown}
             onChange={(e) => handleBirth("d", e.target.value)}
-            className="w-12 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none"
+            className="w-12 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none disabled:opacity-40 disabled:bg-gray-50"
           />
           <Input
             placeholder="MM"
             maxLength={2}
             value={birth.m}
+            disabled={birthDateUnknown}
             onChange={(e) => handleBirth("m", e.target.value)}
-            className="w-12 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none"
+            className="w-12 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none disabled:opacity-40 disabled:bg-gray-50"
           />
           <Input
             placeholder="YYYY"
             maxLength={4}
             value={birth.y}
+            disabled={birthDateUnknown}
             onChange={(e) => handleBirth("y", e.target.value)}
-            className="w-16 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none"
+            className="w-16 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none disabled:opacity-40 disabled:bg-gray-50"
           />
         </div>
+
+        {/* Unknown toggle */}
+        <label className="flex items-center gap-1.5 text-xs text-[#5D4037]/70 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={birthDateUnknown}
+            onChange={(e) => handleUnknownToggle(e.target.checked)}
+            className="accent-[#804B23] w-3.5 h-3.5"
+          />
+          Birth date unknown
+        </label>
 
         {/* Death Date */}
         <div className="flex items-center gap-2">
@@ -96,7 +118,6 @@ export default function DateInputGroup({
             className="w-16 h-10 rounded-lg border-gray-200 text-center px-1 placeholder:text-gray-300 shadow-none"
           />
         </div>
-
       </div>
     </div>
   );

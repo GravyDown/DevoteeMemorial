@@ -23,8 +23,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { useNavigate } from "react-router";
+import api from "@/lib/api";
 
 interface Memorial {
   _id: string;
@@ -92,20 +93,18 @@ export default function MemorialBoard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const VITE_API_URL = import.meta.env.VITE_API_URL || "";
-
   useEffect(() => {
     setLoading(true);
-    fetch(`${VITE_API_URL}/profiles`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch profiles");
-        const data = await res.json();
+    api
+      .get("/profiles")
+      .then((res) => {
+        const data = res.data;
         const profiles: Memorial[] = Array.isArray(data)
           ? data
           : data.profiles || data.data || data.results || [];
         setMemorials(profiles);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(getErrorMessage(err, "Failed to fetch profiles")))
       .finally(() => setLoading(false));
   }, []);
 

@@ -14,6 +14,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Memorial {
   _id: string;
@@ -28,8 +30,6 @@ interface Memorial {
   associatedTemple?: string;
   description?: string;
 }
-
-const API_URL = import.meta.env.VITE_API_URL || "";
 
 const getYear = (d?: string) =>
   d ? new Date(d).getFullYear().toString() : "?";
@@ -54,16 +54,16 @@ export default function Disciples() {
 
   // ── Fetch ────────────────────────────────────────────────
   useEffect(() => {
-    fetch(`${API_URL}/profiles`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
+    api
+      .get("/profiles")
+      .then((res) => {
+        const data = res.data;
         const profiles: Memorial[] = Array.isArray(data)
           ? data
           : data.profiles || data.data || [];
         setMemorials(profiles);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(getErrorMessage(err, "Failed to fetch")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -146,7 +146,7 @@ export default function Disciples() {
           {/* ── Header ── */}
           <div className="mb-8">
             <h1 className="font-script text-[48px] md:text-[56px] text-[#8D6E63]">
-              Disciples Directory
+              Memorial Directory
             </h1>
             <p className="text-[#8D6E63]/70 text-sm mt-1">
               A complete record of departed Vaishnavas — their lives, service,
