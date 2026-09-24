@@ -5,18 +5,17 @@ import { Link } from "react-router";
 
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-b from-[#2C5282] to-[#1A365D] text-white pt-16 pb-8 mt-12">
-      <div className="max-w-[1280px] mx-auto px-6 md:px-16 flex flex-col md:flex-row gap-12">
+    <footer className="bg-gradient-to-r from-[#26537B] to-[#7FAAC1] text-white pt-16 pb-8 mt-12">
+      <div className="max-w-[1280px] mx-auto px-6 md:px-16 flex flex-col md:flex-row gap-12 items-center md:items-start">
         {/* Left: brand info */}
-        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
-          <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-6 backdrop-blur-sm">
-            <img
-              src="/logo.svg"
-              alt="Logo"
-              className="w-12 h-12 brightness-0 invert"
-            />
-          </div>
-          <p className="text-sm text-blue-100 max-w-xs leading-relaxed">
+        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left mt-8 md:mt-16">
+          {/* LOGO: Replace "/your-new-logo.svg" with the path to your actual logo image file in the public folder */}
+          <img
+            src="/Footer.png"
+            alt="Logo"
+            className="w-32 h-auto mb-6 object-contain"
+          />
+          <p className="text-sm text-white max-w-xs leading-relaxed font-medium">
             This website is a humble offering to honor departed Vaishnavas. It
             preserves their memories, services, and teachings so devotees can
             stay connected to their legacy.
@@ -24,39 +23,42 @@ export default function Footer() {
         </div>
 
         {/* Center: feedback form */}
-        <div className="flex-[1.5]">
-          <div className="bg-white rounded-2xl p-6 md:p-8 text-[#5D4037] shadow-xl max-w-md mx-auto">
-            <h3 className="text-center text-sm font-medium mb-1 text-[#8D6E63]">
+        <div className="flex-[1.5] w-full">
+          <div className="bg-white rounded-xl p-8 md:p-10 text-[#5D4037] shadow-lg max-w-[500px] mx-auto">
+            <h3 className="text-center text-lg font-bold mb-1 text-[#804B23]">
               Feedback
             </h3>
-            <p className="text-center text-xs text-gray-400 mb-6">
+            <p className="text-center text-sm text-gray-500 mb-8">
               Share your thoughts and help us improve this seva
             </p>
-            <form className="space-y-4">
+            <form className="space-y-5">
               <Input
                 placeholder="Name"
-                className="bg-gray-50 border-gray-200 h-[44px] rounded-lg"
+                className="bg-white border-gray-200 h-[48px] rounded-lg text-sm"
               />
               <Input
                 placeholder="Email"
-                className="bg-gray-50 border-gray-200 h-[44px] rounded-lg"
+                className="bg-white border-gray-200 h-[48px] rounded-lg text-sm"
               />
               <Textarea
                 placeholder="Feedback"
-                className="bg-gray-50 border-gray-200 min-h-[100px] rounded-lg"
+                className="bg-white border-gray-200 min-h-[120px] rounded-lg text-sm resize-none"
               />
-              <Button className="w-full bg-[#804B23] hover:bg-[#6d3f1d] text-white rounded-full h-[44px]">
-                Submit →
-              </Button>
+              <div className="flex justify-start pt-2">
+                <Button className="bg-[#804B23] hover:bg-[#6d3f1d] text-white rounded-full px-8 h-[44px]">
+                  Submit →
+                </Button>
+              </div>
             </form>
           </div>
         </div>
 
-        {/* Right: nav links — ✅ Quotes instead of Offerings */}
-        <div className="flex-1 flex flex-col items-center md:items-end gap-3 text-sm text-blue-100">
+        {/* Right: nav links */}
+        <div className="flex-1 flex flex-col items-center md:items-end gap-6 text-[15px] font-medium text-white mt-8 md:mt-16">
           {[
             { label: "Home", path: "/" },
             { label: "Disciples", path: "/disciples" },
+            { label: "Offerings", path: "/offerings" },
             { label: "Quotes", path: "/quotes" },
             { label: "About", path: "/about" },
             { label: "Contact", path: "/contact" },
@@ -64,7 +66,11 @@ export default function Footer() {
             <Link
               key={path}
               to={path}
-              className="hover:text-white transition-colors"
+              className={`hover:opacity-80 transition-opacity ${
+                label === "Home"
+                  ? "underline underline-offset-4 decoration-2"
+                  : ""
+              }`}
             >
               {label}
             </Link>

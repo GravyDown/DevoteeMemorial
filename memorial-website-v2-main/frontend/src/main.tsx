@@ -19,7 +19,7 @@ const ResetPassword = lazy(() => import("./components/ResetPassword.tsx"));
 // Lazy load route components for better code splitting
 const Home = lazy(() => import("./pages/Home.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const CreateAccount = lazy(() => import("./pages/CreateAccount.tsx"));
+const CreateMemorial = lazy(() => import("./pages/CreateMemorial.tsx"));
 const CreateOffering = lazy(() => import("./pages/CreateOffering.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Register = lazy(() => import("./pages/Register.tsx"));
@@ -83,10 +83,10 @@ createRoot(document.getElementById("root")!).render(
             />{" "}
             {/* TODO: change redirect after auth to correct page */}
             <Route
-              path="/create-account"
+              path="/create-memorial"
               element={
                 <ProtectedRoute>
-                  <CreateAccount />
+                  <CreateMemorial />
                 </ProtectedRoute>
               }
             />

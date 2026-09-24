@@ -127,7 +127,7 @@ export const createProfile = asyncHandler(async (req, res) => {
     // ── Create profile ───────────────────────────────────
     const profile = await Profile.create({
       name,
-      birthDate: new Date(birthDate),
+      birthDate: birthDate ? new Date(birthDate) : undefined,
       deathDate: new Date(deathDate),
       spiritualMaster,
       honorific,

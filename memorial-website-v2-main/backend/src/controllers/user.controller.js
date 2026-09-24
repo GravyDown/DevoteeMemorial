@@ -44,15 +44,11 @@ export const registerUser = asyncHandler(async (req, res) => {
     accountType: accountType || "",
   });
 
-  try {
-    await sendEmail(
-      email,
-      "Welcome to ISKCON Memorial",
-      `Dear ${username},\n\nThank you for registering!\n\nHare Krishna!`,
-    );
-  } catch (err) {
-    console.error("Email failed:", err.message);
-  }
+  sendEmail(
+    email,
+    "Welcome to ISKCON Memorial",
+    `Dear ${username},\n\nThank you for registering!\n\nHare Krishna!`,
+  ).catch(err => console.error("Email failed:", err.message));
 
   res.status(201).json({
     success: true,

@@ -114,7 +114,7 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
     if (!isAuthenticated) {
       e.preventDefault();
       toast.error(
-        "Please log in first to create a Departed Devotee's account.",
+        "Please log in first to create a Departed Devotee's memorial.",
         {
           description: "You need to be signed in to access this feature.",
           action: {
@@ -202,11 +202,11 @@ export default function AuthPage({ redirectAfterAuth = "/" }: AuthPageProps) {
         {/* ✅ Guarded link — shows toast if not logged in */}
         <div className="mt-12">
           <Link
-            to="/create-account"
+            to="/create-memorial"
             onClick={handleCreateDevoteeClick}
             className="text-[#804B23] font-bold text-lg flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            Create Departed Devotee's Account <ArrowRight className="w-5 h-5" />
+            Create Departed Devotee's Memorial <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
       </main>

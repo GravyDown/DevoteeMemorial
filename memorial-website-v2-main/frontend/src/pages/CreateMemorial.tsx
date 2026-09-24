@@ -4,7 +4,7 @@ import SelectField from "@/components/SelectField";
 import DateInputGroup from "@/components/DateInputGroup";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import api from "@/lib/api";
@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 
-export default function CreateAccount() {
+export default function CreateMemorial() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
@@ -50,6 +50,7 @@ export default function CreateAccount() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>("");
+  const [coverPreview, setCoverPreview] = useState<string>("");
 
   // Whether the devotee's birth date is unknown
   const [birthDateUnknown, setBirthDateUnknown] = useState(false);
@@ -229,7 +230,7 @@ export default function CreateAccount() {
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold text-[#5D4037]">
-              Create Account
+              Create Memorial
             </h1>
             <p className="text-sm text-gray-500">
               {step === 1 ? "Devotee Details" : "Your Details"}
@@ -383,7 +384,7 @@ export default function CreateAccount() {
                   <div>
                     <InputField
                       label="Initiating Guru *"
-                      placeholder="Guru's initiated name"
+                      placeholder=""
                       value={formData.spiritualMaster}
                       onChange={(e) =>
                         handleChange("spiritualMaster", e.target.value)
@@ -460,6 +461,37 @@ export default function CreateAccount() {
                     <label className="text-sm font-medium text-[#5D4037]">
                       Profile Photo *
                     </label>
+                    
+                    {/* Preview */}
+                    {coverPreview && (
+                      <div className="w-full h-32 rounded-xl overflow-hidden mt-2 mb-2 border border-gray-200 bg-gray-50 flex items-center justify-center relative group">
+                        <img
+                          src={coverPreview}
+                          alt="Profile preview"
+                          className="h-full w-auto object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverFile(null);
+                            setCoverPreview("");
+                            // Remove error if any
+                            if (errors.coverImage) {
+                              setErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.coverImage;
+                                return next;
+                              });
+                            }
+                          }}
+                          className="absolute top-2 right-2 bg-red-500/90 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          aria-label="Remove profile photo"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
                     <div
                       className={`border-dashed border-2 p-6 rounded-xl text-center mt-2 transition-colors ${
                         errors.coverImage
@@ -470,17 +502,28 @@ export default function CreateAccount() {
                       }`}
                     >
                       <input
+                        key={coverFile ? coverFile.name : "empty-cover"}
                         type="file"
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0] || null;
                           setCoverFile(file);
-                          if (file && errors.coverImage) {
-                            setErrors((prev) => {
-                              const next = { ...prev };
-                              delete next.coverImage;
-                              return next;
-                            });
+                          if (file) {
+                            // Show preview
+                            const reader = new FileReader();
+                            reader.onload = (ev) =>
+                              setCoverPreview(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                            // Clear error
+                            if (errors.coverImage) {
+                              setErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.coverImage;
+                                return next;
+                              });
+                            }
+                          } else {
+                            setCoverPreview("");
                           }
                         }}
                         className="w-full text-sm text-gray-500"
@@ -509,7 +552,7 @@ export default function CreateAccount() {
                   {/* Banner Image Upload (Optional) */}
                   <div>
                     <label className="text-sm font-medium text-[#5D4037]">
-                      Cover Banner Image
+                      Cover Banner Image <span className="text-gray-400 font-normal">(Optional)</span>
                     </label>
                     <p className="text-[#8D6E63]/50 text-xs mb-2">
                       This will appear as the wide banner on the profile page.
@@ -518,12 +561,30 @@ export default function CreateAccount() {
 
                     {/* Preview */}
                     {bannerPreview && (
-                      <div className="w-full h-24 rounded-xl overflow-hidden mb-2 border border-gray-200">
+                      <div className="w-full h-24 rounded-xl overflow-hidden mb-2 border border-gray-200 relative group">
                         <img
                           src={bannerPreview}
                           alt="Banner preview"
                           className="w-full h-full object-cover"
                         />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBannerFile(null);
+                            setBannerPreview("");
+                            if (errors.bannerImage) {
+                              setErrors((prev) => {
+                                const next = { ...prev };
+                                delete next.bannerImage;
+                                return next;
+                              });
+                            }
+                          }}
+                          className="absolute top-2 right-2 bg-red-500/90 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          aria-label="Remove banner image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
 
@@ -537,6 +598,7 @@ export default function CreateAccount() {
                       }`}
                     >
                       <input
+                        key={bannerFile ? bannerFile.name : "empty-banner"}
                         type="file"
                         accept="image/*"
                         onChange={(e) => {

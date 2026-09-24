@@ -81,15 +81,17 @@ export default function DateInputGroup({
         </div>
 
         {/* Unknown toggle */}
-        <label className="flex items-center gap-1.5 text-xs text-[#5D4037]/70 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={birthDateUnknown}
-            onChange={(e) => handleUnknownToggle(e.target.checked)}
-            className="accent-[#804B23] w-3.5 h-3.5"
-          />
-          Birth date unknown
-        </label>
+        <div className="w-full mt-2">
+          <label className="flex items-center gap-2 text-sm text-[#5D4037]/90 font-medium cursor-pointer select-none bg-white p-2 border border-gray-200 rounded-lg w-fit hover:bg-gray-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={birthDateUnknown}
+              onChange={(e) => handleUnknownToggle(e.target.checked)}
+              className="accent-[#804B23] w-4 h-4 cursor-pointer"
+            />
+            I don't know the birth date
+          </label>
+        </div>
 
         {/* Death Date */}
         <div className="flex items-center gap-2">

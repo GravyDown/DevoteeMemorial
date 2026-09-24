@@ -35,7 +35,7 @@ export default function Navbar() {
   // ✅ Figma: Home, Disciples, Quotes, About, Contact
   const navLinks = [
     { label: "Home", path: "/" },
-    { label: "Disciples", path: "/disciples" },
+    { label: "Memorial Directory", path: "/disciples" },
     { label: "Quotes", path: "/quotes" },
     { label: "About", path: "/about" },
     { label: "Contact", path: "/contact" },
@@ -80,7 +80,7 @@ export default function Navbar() {
           ) : isAuthenticated ? (
             <>
               <Link
-                to="/create-account"
+                to="/create-memorial"
                 className="flex items-center gap-1.5 text-[#804B23] font-medium text-[14px] border border-[#804B23]/40 rounded-full px-4 h-[40px] hover:bg-[#804B23]/10 transition-colors whitespace-nowrap"
               >
                 <PlusCircle className="w-4 h-4 shrink-0" />
@@ -158,7 +158,7 @@ export default function Navbar() {
                   <p className="text-xs text-gray-400">{user?.email}</p>
                 </div>
                 <Link
-                  to="/create-account"
+                  to="/create-memorial"
                   onClick={closeMenu}
                   className="flex items-center gap-2 text-[#804B23] font-medium text-base border border-[#804B23]/40 rounded-full px-4 py-2.5 hover:bg-[#804B23]/10 transition-colors"
                 >
