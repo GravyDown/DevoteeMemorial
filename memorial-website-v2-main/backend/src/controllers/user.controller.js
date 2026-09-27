@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/mailer.js";
 import { User } from "../models/user.models.js";
+import { Profile } from "../models/profile.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { OAuth2Client } from "google-auth-library";
@@ -327,6 +328,90 @@ export const verifyResetIdentity = asyncHandler(async (req, res) => {
   });
 });
  
+// ================= ADMIN: LIST USERS =================
+// GET /api/users/admin/all
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({})
+    .select("-password -resetPasswordToken -resetPasswordExpiry")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Profiles only started recording who submitted them once `submittedBy`
+  // was added, so this count is accurate for new submissions only — older
+  // profiles (submittedBy: null) aren't attributed to anyone.
+  const counts = await Profile.aggregate([
+    { $match: { submittedBy: { $ne: null } } },
+    { $group: { _id: "$submittedBy", count: { $sum: 1 } } },
+  ]);
+  const countMap = new Map(counts.map((c) => [String(c._id), c.count]));
+
+  res.json({
+    success: true,
+    users: users.map((u) => ({
+      ...u,
+      profilesSubmitted: countMap.get(String(u._id)) || 0,
+    })),
+  });
+});
+
+// ================= ADMIN: UPDATE USER ROLE =================
+// PATCH /api/users/admin/:id/role
+export const updateUserRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!["user", "admin"].includes(role)) {
+    throw new ApiError(400, "Invalid role");
+  }
+
+  const updated = await User.findByIdAndUpdate(
+    id,
+    { role },
+    { new: true },
+  ).select("-password -resetPasswordToken -resetPasswordExpiry");
+
+  if (!updated) throw new ApiError(404, "User not found");
+
+  res.json({
+    success: true,
+    user: updated,
+  });
+});
+
+// ================= ADMIN: INVITE USER =================
+// POST /api/users/admin/invite  { email }
+// Deliberately minimal: sends an email pointing at the signup page.
+// Does not pre-create a User document or an invite token — the person
+// still registers normally. No new schema surface, nothing to expire.
+export const inviteUser = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    throw new ApiError(400, "A valid email is required");
+  }
+
+  const existing = await User.findOne({ email });
+  if (existing) {
+    throw new ApiError(409, "A user with this email already exists");
+  }
+
+  const signupUrl = `${process.env.FRONTEND_URL || process.env.CLIENT_URL || ""}/register`.trim();
+  const linkLine = process.env.FRONTEND_URL || process.env.CLIENT_URL
+    ? `Sign up here: ${signupUrl}`
+    : "Sign up on the Vaishnava Memorial site to get started.";
+
+  await sendEmail(
+    email,
+    "You're invited to Vaishnava Memorial",
+    `You've been invited to join Vaishnava Memorial. ${linkLine}`,
+    `<p>You've been invited to join <strong>Vaishnava Memorial</strong>.</p><p>${linkLine}</p>`,
+  );
+
+  res.json({
+    success: true,
+    message: "Invitation sent",
+  });
+});
+
 // ================= RESET PASSWORD (Step 2 — no email required) =================
 export const resetPassword = asyncHandler(async (req, res) => {
   const { verifyToken, newPassword } = req.body;

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, UserCircle, PlusCircle } from "lucide-react";
+import { Menu, X, LogOut, UserCircle, PlusCircle, ShieldCheck } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
@@ -87,6 +87,16 @@ export default function Navbar() {
                 Create Memorial
               </Link>
 
+              {user?.role === "admin" && (
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-1.5 bg-[#804B23]/10 text-[#804B23] font-medium text-[14px] border border-[#804B23]/40 rounded-full px-4 h-[40px] hover:bg-[#804B23]/20 transition-colors whitespace-nowrap"
+                >
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  Admin
+                </Link>
+              )}
+
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen((prev) => !prev)}
@@ -103,6 +113,16 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-[#5D4037] truncate">{user?.username}</p>
                       <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                     </div>
+                    {user?.role === "admin" && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#804B23] hover:bg-[#804B23]/10 transition-colors"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        Admin Dashboard
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -165,6 +185,16 @@ export default function Navbar() {
                   <PlusCircle className="w-4 h-4" />
                   Create Devotee Memorial
                 </Link>
+                {user?.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    onClick={closeMenu}
+                    className="flex items-center gap-2 text-[#804B23] font-medium text-base border border-[#804B23]/40 rounded-full px-4 py-2.5 hover:bg-[#804B23]/10 transition-colors"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    Admin Dashboard
+                  </Link>
+                )}
                 <Button
                   onClick={() => { closeMenu(); handleLogout(); }}
                   variant="outline"

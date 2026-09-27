@@ -8,6 +8,7 @@ import {
   deleteProfile,
 } from "../controllers/profile.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { optionalAuth } from "../middlewares/auth.middleware.js";
 import { Profile } from "../models/profile.models.js";
 
 const router = express.Router();
@@ -24,7 +25,7 @@ for (let i = 0; i < 10; i++) {
 }
 
 // Create
-router.post("/", upload.fields(uploadFields), createProfile);
+router.post("/", optionalAuth, upload.fields(uploadFields), createProfile);
 
 // Read - list accepted
 router.get("/", getAllProfiles);

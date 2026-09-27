@@ -59,6 +59,14 @@ const profileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Links this profile to the logged-in user who submitted it, when there
+    // was one. Optional and unbackfilled: profiles created before this field
+    // existed, or submitted while logged out, will have this as null.
+    submittedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "accepted", "declined"],

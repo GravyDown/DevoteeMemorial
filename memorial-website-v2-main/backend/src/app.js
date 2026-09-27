@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { Profile } from "./models/profile.models.js";
+import { Offering } from "./models/offering.models.js";
+import { User } from "./models/user.models.js";
 import offeringRoutes from "./routes/offering.routes.js";
 import { authenticateToken, requireAdmin } from "./middlewares/auth.middleware.js";
 
@@ -126,6 +128,52 @@ app.get("/api/admin/declined", authenticateToken, requireAdmin, async (req, res)
     res.json({ success: true, profiles });
   } catch {
     res.status(500).json({ error: "Failed to fetch declined profiles" });
+  }
+});
+
+// Dashboard stat cards (total/pending profiles, total offerings, total users + deltas)
+app.get("/api/admin/stats", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const [
+      totalProfiles,
+      pendingProfiles,
+      totalOfferings,
+      totalUsers,
+      profilesThisMonth,
+      offeringsThisMonth,
+      usersThisWeek,
+    ] = await Promise.all([
+      Profile.countDocuments({}),
+      Profile.countDocuments({ status: "pending" }),
+      Offering.countDocuments({}),
+      User.countDocuments({}),
+      Profile.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      Offering.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      User.countDocuments({ createdAt: { $gte: startOfWeek } }),
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        totalProfiles,
+        pendingProfiles,
+        totalOfferings,
+        totalUsers,
+        profilesThisMonth,
+        offeringsThisMonth,
+        usersThisWeek,
+      },
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 

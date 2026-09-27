@@ -1,6 +1,6 @@
 import fs from "fs";
 import { Offering } from "../models/offering.models.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { uploadToCloudinary } from "../utils/Cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 
@@ -81,4 +81,63 @@ export const getOfferingsByProfile = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * ADMIN: list all offerings, optionally filtered by status
+ * GET /api/offerings/admin/all?status=pending|approved|rejected
+ */
+export const getAllOfferings = asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  const filter = status && status !== "all" ? { status } : {};
 
+  const offerings = await Offering.find(filter)
+    .populate("profile", "name location coverImage")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.json({
+    success: true,
+    offerings,
+  });
+});
+
+/**
+ * ADMIN: approve or reject an offering
+ * PATCH /api/offerings/:id/status
+ */
+export const updateOfferingStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!["approved", "rejected"].includes(status)) {
+    throw new ApiError(400, "Invalid status");
+  }
+
+  const updated = await Offering.findByIdAndUpdate(
+    id,
+    { status },
+    { new: true }
+  ).populate("profile", "name");
+
+  if (!updated) throw new ApiError(404, "Offering not found");
+
+  res.json({
+    success: true,
+    offering: updated,
+  });
+});
+
+/**
+ * ADMIN: delete an offering
+ * DELETE /api/offerings/:id
+ */
+export const deleteOffering = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const deleted = await Offering.findByIdAndDelete(id);
+  if (!deleted) throw new ApiError(404, "Offering not found");
+
+  res.json({
+    success: true,
+    message: "Offering deleted",
+  });
+});

@@ -1,5 +1,5 @@
 import { Profile } from "../models/profile.models.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { uploadToCloudinary } from "../utils/Cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import fs from "fs";
@@ -141,6 +141,7 @@ export const createProfile = asyncHandler(async (req, res) => {
       bannerImage: bannerImageUrl,
       contributorName,
       contributorPhone,
+      submittedBy: req.user?.id || null,
       birthPlace,
       spiritualLineage,
       notableWorks,

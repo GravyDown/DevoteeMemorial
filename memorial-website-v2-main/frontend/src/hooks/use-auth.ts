@@ -10,6 +10,7 @@ interface User {
   temple?: string;
   location?: string;
   accountType?: string;
+  role?: string;
 }
 
 export function useAuth() {
