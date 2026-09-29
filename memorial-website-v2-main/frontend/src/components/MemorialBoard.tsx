@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import MemorialCard from "./MemorialCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ import {
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useNavigate } from "react-router";
 import api from "@/lib/api";
+import { getSpotlight, spotlightBadge, spotlightMessageSuffix } from "@/lib/spotlight";
 
 interface Memorial {
   _id: string;
@@ -88,7 +89,7 @@ export default function MemorialBoard() {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sortAsc, setSortAsc] = useState(false);
-  const [heroIndex, setHeroIndex] = useState(0);
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [memorials, setMemorials] = useState<Memorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -182,14 +183,34 @@ export default function MemorialBoard() {
     setFilters((prev) => ({ ...prev, search: "" }));
   };
 
-  // Hero banner cycles through memorials fetched from API
-  const heroMemorial = memorials[heroIndex] ?? null;
+  // Hero banner only ever shows devotees whose disappearance day (death
+  // anniversary) or appearance day (birth anniversary) is near today —
+  // it no longer just cycles through every profile in the directory.
+  const spotlight = useMemo(() => getSpotlight(memorials), [memorials]);
+
+  // Reset to the first (most relevant) spotlight entry whenever the
+  // underlying list changes, so we don't point at a stale/out-of-range index.
+  useEffect(() => setSpotlightIndex(0), [spotlight.length]);
+
+  // Auto-advance every 6s when there's more than one entry to show; any
+  // manual prev/next restarts the timer so it doesn't jump mid-read.
+  useEffect(() => {
+    if (spotlight.length <= 1) return;
+    const t = setInterval(
+      () => setSpotlightIndex((p) => (p + 1) % spotlight.length),
+      6000,
+    );
+    return () => clearInterval(t);
+  }, [spotlight.length, spotlightIndex]);
+
+  const heroEntry = spotlight[spotlightIndex] ?? null;
+  const heroMemorial = heroEntry?.profile ?? null;
   const handleHeroPrev = () =>
-    setHeroIndex((p) =>
-      p - 1 < 0 ? Math.max(memorials.length - 1, 0) : p - 1,
+    setSpotlightIndex((p) =>
+      p - 1 < 0 ? Math.max(spotlight.length - 1, 0) : p - 1,
     );
   const handleHeroNext = () =>
-    setHeroIndex((p) => (p + 1 >= memorials.length ? 0 : p + 1));
+    setSpotlightIndex((p) => (p + 1 >= spotlight.length ? 0 : p + 1));
 
   const hasActiveFilters = Object.entries(filters).some(([k, v]) =>
     k === "search" ? v !== "" : v !== "all",
@@ -204,121 +225,91 @@ export default function MemorialBoard() {
         </h2>
       </div>
       
-      {/* ── Hero banner ── */}
-      <div
-        className="rounded-2xl text-white relative overflow-hidden mb-8 shadow-md"
-        style={{
-          background:
-            "linear-gradient(135deg, #3d6b7a 0%, #4a7d8e 50%, #5a90a3 100%)",
-          minHeight: "96px",
-        }}
-      >
-        {/* Lotus decoration — right side, more visible */}
-        <div className="absolute right-48 top-1/2 -translate-y-1/2 opacity-30 pointer-events-none">
-          <svg width="80" height="100" viewBox="0 0 72 90" fill="none">
-            <path
-              d="M36 80 Q23 52 27 24 Q36 6 36 6 Q36 6 45 24 Q49 52 36 80Z"
-              fill="white"
-            />
-            <path
-              d="M36 74 Q14 56 16 28 Q23 12 29 16 Q32 44 36 74Z"
-              fill="white"
-              opacity="0.7"
-            />
-            <path
-              d="M36 74 Q58 56 56 28 Q49 12 43 16 Q40 44 36 74Z"
-              fill="white"
-              opacity="0.7"
-            />
-            <path
-              d="M36 68 Q4 60 5 32 Q13 16 24 24 Q27 48 36 68Z"
-              fill="white"
-              opacity="0.45"
-            />
-            <path
-              d="M36 68 Q68 60 67 32 Q59 16 48 24 Q45 48 36 68Z"
-              fill="white"
-              opacity="0.45"
-            />
-            <ellipse
-              cx="36"
-              cy="83"
-              rx="12"
-              ry="3.5"
-              fill="white"
-              opacity="0.25"
-            />
-          </svg>
-        </div>
+      {/* ── Hero banner — deathDate is required on every profile, so this
+           always has at least a generic entry to show (matching the
+           always-visible Figma design), with true anniversary matches
+           surfacing first with their own badge. ── */}
+      {heroEntry && heroMemorial && (
+      <div className="rounded-2xl bg-[#F1E3CC] p-2.5 flex items-center gap-2.5 mb-8 shadow-sm">
+        {/* Prev — outside the blue card, on the beige outer container */}
+        <button
+          onClick={handleHeroPrev}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-[#804B23] hover:bg-[#6d3f1d] text-white transition-colors shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
 
-        <div className="flex items-center px-4 py-4 gap-4">
-          {/* Prev */}
-          <button
-            onClick={handleHeroPrev}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-black/15 hover:bg-black/30 text-white transition-colors shrink-0"
+        <div
+          className="flex-1 min-w-0 rounded-xl text-white relative overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, #2c4f66 0%, #3d6b7a 45%, #6a95a8 100%)",
+          }}
+        >
+          {/* Thin-line lotus — small accent near the CTA, not a big watermark */}
+          <svg
+            className="absolute right-32 top-1/2 -translate-y-1/2 opacity-80 pointer-events-none hidden sm:block"
+            width="34" height="46" viewBox="0 0 34 46" fill="none"
           >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+            <path d="M17 44V20" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+            <path d="M17 22c0-9 -6-14 -6-14s0 9 6 14Z" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
+            <path d="M17 22c0-9 6-14 6-14s0 9 -6 14Z" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
+            <path d="M17 18c-2-7 2-12 2-12s4 5 2 12Z" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
 
-          {/* Avatar — larger like Figma */}
-          <div className="w-16 h-16 rounded-full border-2 border-white/50 overflow-hidden shrink-0 shadow-md">
-            <img
-              src={
-                heroMemorial?.coverImage ||
-                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz34AXN9tz2eaTk4yjFzzlj6WO3roO8by2tg&s"
-              }
-              alt={heroMemorial?.name || "Featured devotee"}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz34AXN9tz2eaTk4yjFzzlj6WO3roO8by2tg&s";
-              }}
-            />
-          </div>
-
-          {/* Info — name on top, dates below (matching Figma) */}
-          <div className="flex-1 min-w-0">
-            {/* Dates + badge row */}
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-white/80 text-sm font-medium">
-                {getYear(heroMemorial?.birthDate)} –{" "}
-                {getYear(heroMemorial?.deathDate)}
-              </span>
-              <span className="bg-[#2d5a6b]/70 border border-white/20 text-white text-xs px-3 py-0.5 rounded-full font-medium backdrop-blur-sm">
-                Recently departed
-              </span>
+          <div className="flex items-center px-4 py-3.5 gap-4">
+            {/* Avatar */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-white/50 overflow-hidden shrink-0 shadow-md">
+              <img
+                src={
+                  heroMemorial.coverImage ||
+                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz34AXN9tz2eaTk4yjFzzlj6WO3roO8by2tg&s"
+                }
+                alt={heroMemorial.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz34AXN9tz2eaTk4yjFzzlj6WO3roO8by2tg&s";
+                }}
+              />
             </div>
 
-            {/* Name bold, then message */}
-            <p className="text-white text-sm leading-snug">
-              <span className="font-bold text-white">
-                {heroMemorial?.name ?? "HH Gopal Krishna Goswami maharaj"}
-              </span>{" "}
-              <span className="text-white/80">
-                has returned to Krishna's abode
-              </span>
-            </p>
+            {/* Dates + badge + message */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-white/80 text-sm font-medium">
+                  {getYear(heroMemorial.birthDate)} –{" "}
+                  {getYear(heroMemorial.deathDate)}
+                </span>
+                <span className="bg-[#2d5a6b]/70 border border-white/20 text-white text-xs px-3 py-0.5 rounded-full font-medium backdrop-blur-sm whitespace-nowrap">
+                  {spotlightBadge(heroEntry)}
+                </span>
+              </div>
+              <p className="text-white text-sm leading-snug">
+                <span className="font-bold text-white">{heroMemorial.name}</span>{" "}
+                <span className="text-white/80">{spotlightMessageSuffix(heroEntry)}</span>
+              </p>
+            </div>
+
+            {/* CTA */}
+            <Button
+              onClick={() => navigate(`/disciples/${heroMemorial._id}`)}
+              className="bg-white text-[#4a7a8a] hover:bg-white/95 rounded-full px-5 sm:px-6 h-9 text-sm font-semibold shadow-md shrink-0 whitespace-nowrap border border-white/20"
+            >
+              Give Offering →
+            </Button>
           </div>
-
-          {/* CTA button */}
-          <Button
-            onClick={() =>
-              heroMemorial && navigate(`/disciples/${heroMemorial._id}`)
-            }
-            className="bg-white text-[#4a7a8a] hover:bg-white/95 rounded-full px-6 h-9 text-sm font-semibold shadow-md shrink-0 whitespace-nowrap border border-white/20"
-          >
-            Give Offering →
-          </Button>
-
-          {/* Next */}
-          <button
-            onClick={handleHeroNext}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-black/15 hover:bg-black/30 text-white transition-colors shrink-0"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
+
+        {/* Next — outside the blue card, on the beige outer container */}
+        <button
+          onClick={handleHeroNext}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-[#804B23] hover:bg-[#6d3f1d] text-white transition-colors shrink-0"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
+      )}
       {/* ── Search bar ── */}
       <div className="relative mb-4" ref={searchRef}>
         <Input

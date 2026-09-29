@@ -1,0 +1,10 @@
+/* Fonts used only on the Disciple Detail page.
+   Imported as a side-effect from DiscipleDetail.tsx — safe to load here
+   since index.css is marked DO NOT CHANGE. Vite bundles this globally
+   once it's imported anywhere, so the Cormorant Garamond arbitrary
+   utility classes used in the disciple/* components pick it up too. */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Jost:wght@300;400;500&display=swap");
+
+.disciple-page {
+  font-family: "Jost", sans-serif;
+}

@@ -7,8 +7,9 @@ import {
   updateProfileStatus,
   deleteProfile,
 } from "../controllers/profile.controller.js";
+import { toggleFollow, getFollowStatus } from "../controllers/follow.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import { optionalAuth } from "../middlewares/auth.middleware.js";
+import { authenticateToken, optionalAuth } from "../middlewares/auth.middleware.js";
 import { Profile } from "../models/profile.models.js";
 
 const router = express.Router();
@@ -92,6 +93,13 @@ router.patch("/:id/timeline", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+// Follow / unfollow (toggle) — requires login
+router.post("/:id/follow", authenticateToken, toggleFollow);
+
+// Follow status + follower count — works for guests, includes `following`
+// when a user is logged in
+router.get("/:id/follow", optionalAuth, getFollowStatus);
 
 // Read single
 router.get("/:id", getProfileById);
