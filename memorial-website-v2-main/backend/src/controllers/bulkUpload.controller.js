@@ -4,7 +4,7 @@ import path from "path";
 import fetch from "node-fetch";
 import { fileURLToPath } from "url";
 import { Profile } from "../models/profile.models.js";
-import { uploadToCloudinary } from "../utils/Cloudinary.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
