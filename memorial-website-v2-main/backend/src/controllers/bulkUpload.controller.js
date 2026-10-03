@@ -29,9 +29,9 @@ const COLUMNS = [
   { header: "Account Type", field: "accountType" },
   { header: "Location", field: "location", required: true },
   { header: "Description", field: "description", required: true },
-  { header: "Cover Image URL", field: "coverImage", required: true },
-  { header: "Banner Image URL", field: "bannerImage" },
-  { header: "Audio URLs (comma-separated)", field: "audioFiles", list: true },
+  { header: "Cover Image (URL or uploaded filename)", field: "coverImage", required: true },
+  { header: "Banner Image (URL or uploaded filename)", field: "bannerImage" },
+  { header: "Audio (URLs or uploaded filenames, comma-separated)", field: "audioFiles", list: true },
   { header: "Contributor Name", field: "contributorName", required: true },
   { header: "Contributor Phone", field: "contributorPhone", required: true },
   { header: "Birth Place", field: "birthPlace" },
@@ -55,9 +55,9 @@ const SAMPLE_ROW = {
   "Account Type": "Memorial",
   "Location": "Delhi, India",
   "Description": "A short, genuine paragraph about this devotee's life and service.",
-  "Cover Image URL": "https://example.com/photos/example-devotee.jpg",
-  "Banner Image URL": "",
-  "Audio URLs (comma-separated)": "",
+  "Cover Image (URL or uploaded filename)": "jayananda-das.jpg",
+  "Banner Image (URL or uploaded filename)": "",
+  "Audio (URLs or uploaded filenames, comma-separated)": "",
   "Contributor Name": "Admin",
   "Contributor Phone": "9876543210",
   "Birth Place": "Delhi, India",
@@ -78,6 +78,32 @@ export const downloadBulkTemplate = asyncHandler(async (req, res) => {
   ws["!cols"] = headers.map((h) => ({ wch: Math.max(18, h.length) }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Devotees");
+
+  // Second sheet: plain-language instructions, since "Cover Image (URL or
+  // uploaded filename)" needs a bit more explanation than a column header
+  // can carry on its own.
+  const instructions = [
+    ["How to fill this in"],
+    [""],
+    ["1. One row per devotee. Don't rename or reorder the columns on the Devotees sheet."],
+    ["2. Required columns: Name, Death Date, Spiritual Master, Location, Description,"],
+    ["   Cover Image, Contributor Name, Contributor Phone. Everything else is optional."],
+    ["3. Dates must be in YYYY-MM-DD format, e.g. 2021-09-04."],
+    [""],
+    ["Cover Image / Banner Image / Audio columns — two ways to fill these in:"],
+    ["  (a) A web address starting with http:// or https://, if the photo/audio is"],
+    ["      already hosted somewhere, OR"],
+    ["  (b) The exact filename of a photo/audio file you select in the \"Images\" picker"],
+    ["      when you upload this spreadsheet — e.g. type \"jayananda-das.jpg\" here, and"],
+    ["      choose a file named exactly jayananda-das.jpg (not case-sensitive) in the"],
+    ["      upload dialog. Do not type a file path from your computer (e.g. C:\\Photos\\...)"],
+    ["      — browsers can't send that to the server, only the file's own name."],
+    [""],
+    ["Multiple audio files for one devotee: separate filenames/URLs with a comma."],
+  ];
+  const wsInfo = XLSX.utils.aoa_to_sheet(instructions);
+  wsInfo["!cols"] = [{ wch: 90 }];
+  XLSX.utils.book_append_sheet(wb, wsInfo, "Instructions");
 
   const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
   res.setHeader(
@@ -107,14 +133,53 @@ async function downloadToTemp(url, label) {
   return tempPath;
 }
 
-async function uploadMediaUrl(url, { folder, label, resourceType = "image" }) {
-  if (!url || !isUrl(url)) return null;
-  const tempPath = await downloadToTemp(url, label);
+/** Builds a lookup from (lowercased) original filename -> local disk path,
+ *  from the files multer saved under the "images" field. Lets a row say
+ *  "jayananda-das.jpg" instead of needing the photo hosted somewhere first. */
+function buildFileMap(imageFiles) {
+  const map = new Map();
+  for (const f of imageFiles ?? []) {
+    map.set(f.originalname.trim().toLowerCase(), f.path);
+  }
+  return map;
+}
+
+/** Resolves one Cover Image / Banner Image / Audio cell to a Cloudinary
+ *  URL. Tries, in order:
+ *    1. It's already a URL → download it, then upload.
+ *    2. It matches the filename of an uploaded local image (case-insensitive)
+ *       → upload that file directly, no download step needed.
+ *  Returns { url, reason } — reason is only set on failure, for row-level
+ *  error reporting back to the admin. */
+async function resolveMediaRef(ref, { fileMap, folder, label, resourceType = "image" }) {
+  if (!ref) return { url: null, reason: null };
+
+  if (isUrl(ref)) {
+    try {
+      const tempPath = await downloadToTemp(ref, label);
+      try {
+        const result = await uploadToCloudinary(tempPath, folder, resourceType);
+        return result?.secure_url ? { url: result.secure_url, reason: null } : { url: null, reason: "Cloudinary upload failed" };
+      } finally {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      }
+    } catch (err) {
+      return { url: null, reason: `could not download ${ref}: ${err.message}` };
+    }
+  }
+
+  const localPath = fileMap.get(String(ref).trim().toLowerCase());
+  if (!localPath) {
+    return {
+      url: null,
+      reason: `"${ref}" is not a URL and no uploaded file with that exact name was found`,
+    };
+  }
   try {
-    const result = await uploadToCloudinary(tempPath, folder, resourceType);
-    return result?.secure_url ?? null;
-  } finally {
-    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    const result = await uploadToCloudinary(localPath, folder, resourceType);
+    return result?.secure_url ? { url: result.secure_url, reason: null } : { url: null, reason: "Cloudinary upload failed" };
+  } catch (err) {
+    return { url: null, reason: `upload failed: ${err.message}` };
   }
 }
 
@@ -172,9 +237,11 @@ function parseRow(rawRow, rowNumber) {
   ) {
     errors.push('"Death Date" must be after "Birth Date"');
   }
-  if (data.coverImage && !isUrl(data.coverImage)) {
-    errors.push('"Cover Image URL" must be a URL starting with http(s):// — local file paths cannot be used from a browser upload');
-  }
+  // No format check on coverImage/bannerImage/audioFiles here — each can be
+  // either a URL or an uploaded-file reference, and we can't tell which was
+  // intended (or whether the referenced file was actually attached) until
+  // we have the uploaded files list, which parseRow doesn't see. That check
+  // happens per-row later, once fileMap is available.
 
   return {
     row: rowNumber,
@@ -189,24 +256,45 @@ function parseRow(rawRow, rowNumber) {
  * optional "publishImmediately" field ("true"/"false", default true since
  * this endpoint is admin-only to begin with). */
 export const bulkUploadProfiles = asyncHandler(async (req, res) => {
-  if (!req.file) throw new ApiError(400, "No file uploaded. Attach an .xlsx, .xls, or .csv file as \"file\".");
+  // With upload.fields([...]), files land on req.files.<fieldname>, not
+  // req.file — "file" is the spreadsheet (always an array, even for
+  // maxCount: 1), "images" is whatever local photos were attached.
+  const spreadsheetFile = req.files?.file?.[0];
+  const imageFiles = req.files?.images ?? [];
+
+  if (!spreadsheetFile) {
+    throw new ApiError(400, "No spreadsheet uploaded. Attach an .xlsx, .xls, or .csv file as \"file\".");
+  }
+
+  const cleanupLocalFiles = () => {
+    for (const f of [spreadsheetFile, ...imageFiles]) {
+      if (f?.path && fs.existsSync(f.path)) {
+        try {
+          fs.unlinkSync(f.path);
+        } catch {
+          // best-effort cleanup — a leftover temp file isn't worth failing the request over
+        }
+      }
+    }
+  };
 
   const publishImmediately = req.body.publishImmediately !== "false";
   const status = publishImmediately ? "accepted" : "pending";
+  const fileMap = buildFileMap(imageFiles);
 
   let workbook;
   try {
-    workbook = XLSX.readFile(req.file.path);
+    workbook = XLSX.readFile(spreadsheetFile.path);
   } catch (err) {
-    fs.unlinkSync(req.file.path);
+    cleanupLocalFiles();
     throw new ApiError(400, `Could not read spreadsheet: ${err.message}`);
   }
 
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-  fs.unlinkSync(req.file.path); // done with the uploaded spreadsheet itself
 
   if (rawRows.length === 0) {
+    cleanupLocalFiles();
     throw new ApiError(400, "The spreadsheet has no data rows.");
   }
 
@@ -230,45 +318,61 @@ export const bulkUploadProfiles = asyncHandler(async (req, res) => {
     }
   }
 
-  // ── 3. Upload images (limited concurrency — this is a free-tier
-  //       Cloudinary account, not a bulk-ingest pipeline) ──
+  // ── 3. Resolve + upload media (limited concurrency — this is a
+  //       free-tier Cloudinary account, not a bulk-ingest pipeline).
+  //       Each ref can be a URL (downloaded then uploaded) or the
+  //       filename of one of the images attached in this same request. ──
   const uploadFailures = [];
   const docs = (
     await mapWithConcurrency(toProcess, 3, async (p) => {
-      const coverImage = await uploadMediaUrl(p.data.coverImage, {
+      const cover = await resolveMediaRef(p.data.coverImage, {
+        fileMap,
         folder: "iskcon/profiles",
         label: p.name,
-      }).catch(() => null);
-      if (!coverImage) {
-        uploadFailures.push({ row: p.row, name: p.name, reason: "cover image upload failed" });
+      });
+      if (!cover.url) {
+        uploadFailures.push({ row: p.row, name: p.name, reason: cover.reason || "cover image upload failed" });
         return null;
       }
-      const bannerImage = p.data.bannerImage
-        ? await uploadMediaUrl(p.data.bannerImage, { folder: "iskcon/banners", label: `${p.name}_banner` }).catch(() => "")
-        : "";
+
+      const banner = p.data.bannerImage
+        ? await resolveMediaRef(p.data.bannerImage, { fileMap, folder: "iskcon/banners", label: `${p.name}_banner` })
+        : { url: "", reason: null };
+      if (p.data.bannerImage && !banner.url) {
+        // Banner is optional, so this doesn't block the row — just surface
+        // it as a non-fatal note alongside any real failures.
+        uploadFailures.push({ row: p.row, name: p.name, reason: `banner image skipped — ${banner.reason}` });
+      }
 
       const audioFiles = [];
-      for (const audioUrl of p.data.audioFiles ?? []) {
-        const uploaded = await uploadMediaUrl(audioUrl, {
+      for (const audioRef of p.data.audioFiles ?? []) {
+        const audio = await resolveMediaRef(audioRef, {
+          fileMap,
           folder: "iskcon/audio",
           label: `${p.name}_audio`,
           resourceType: "auto",
-        }).catch(() => null);
-        if (uploaded) audioFiles.push(uploaded);
+        });
+        if (audio.url) {
+          audioFiles.push(audio.url);
+        } else {
+          uploadFailures.push({ row: p.row, name: p.name, reason: `audio "${audioRef}" skipped — ${audio.reason}` });
+        }
       }
 
       return {
         ...p.data,
         birthDate: p.data.birthDate ? new Date(p.data.birthDate) : undefined,
         deathDate: new Date(p.data.deathDate),
-        coverImage,
-        bannerImage: bannerImage || "",
+        coverImage: cover.url,
+        bannerImage: banner.url || "",
         audioFiles,
         status,
         submittedBy: req.user?.id || null,
       };
     })
   ).filter(Boolean);
+
+  cleanupLocalFiles();
 
   // ── 4. Insert in one batch (ordered:false so one bad doc doesn't
   //       block the rest) ──

@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
+  Images,
+  X,
 } from "lucide-react";
 
 /** Matches the shape ApiResponse(200, {...}) sends back from
@@ -45,7 +47,9 @@ export default function BulkUploadDialog({
   onUploaded: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState("");
+  const [images, setImages] = useState<File[]>([]);
   const [publishImmediately, setPublishImmediately] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
@@ -53,9 +57,13 @@ export default function BulkUploadDialog({
 
   const reset = () => {
     setFileName("");
+    setImages([]);
     setResult(null);
     if (fileRef.current) fileRef.current.value = "";
+    if (imagesRef.current) imagesRef.current.value = "";
   };
+
+  const removeImage = (name: string) => setImages((prev) => prev.filter((f) => f.name !== name));
 
   const handleClose = (o: boolean) => {
     if (!uploading) {
@@ -94,6 +102,7 @@ export default function BulkUploadDialog({
     try {
       const form = new FormData();
       form.append("file", file);
+      images.forEach((img) => form.append("images", img));
       form.append("publishImmediately", String(publishImmediately));
       const res = await api.post("/admin/profiles/bulk-upload", form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -127,7 +136,8 @@ export default function BulkUploadDialog({
           <DialogTitle className="text-[#5D4037]">Bulk upload devotees</DialogTitle>
           <DialogDescription>
             Add multiple memorial profiles at once from a spreadsheet. Each row needs a name, death date,
-            spiritual master, location, description, cover image URL, and contributor details.
+            spiritual master, location, description, contributor details, and a cover image — either a URL,
+            or the filename of a photo you attach below.
           </DialogDescription>
         </DialogHeader>
 
@@ -172,6 +182,46 @@ export default function BulkUploadDialog({
               className="hidden"
               onChange={(e) => setFileName(e.target.files?.[0]?.name || "")}
             />
+          </div>
+
+          {/* Step 2b: local photos, referenced by filename in the sheet */}
+          <div>
+            <label className="text-xs font-medium text-[#5D4037] mb-1.5 block">
+              Photos from this device <span className="text-[#8D6E63] font-normal">(optional — only needed for rows that reference a filename instead of a URL)</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => imagesRef.current?.click()}
+              className="w-full border-2 border-dashed border-[#8D6E63]/25 hover:border-[#804B23]/40 rounded-xl py-4 text-center transition-colors"
+            >
+              <Images className="w-5 h-5 text-[#8D6E63] mx-auto mb-1.5" />
+              <p className="text-xs text-[#5D4037]">
+                {images.length > 0 ? `${images.length} photo${images.length === 1 ? "" : "s"} selected` : "Click to select one or more photos"}
+              </p>
+            </button>
+            <input
+              ref={imagesRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => setImages((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
+            />
+            {images.length > 0 && (
+              <ul className="mt-2 max-h-24 overflow-y-auto space-y-1">
+                {images.map((img) => (
+                  <li key={img.name} className="flex items-center justify-between text-[11px] bg-[#FFF8F0] rounded-lg px-2.5 py-1">
+                    <span className="truncate text-[#5D4037]">{img.name}</span>
+                    <button type="button" onClick={() => removeImage(img.name)} className="text-[#8D6E63] hover:text-red-600 shrink-0 ml-2">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[10px] text-[#8D6E63] mt-1">
+              In the spreadsheet's Cover Image column, type the exact filename (e.g. <code>jayananda-das.jpg</code>) instead of a URL.
+            </p>
           </div>
 
           {/* Step 3: publish toggle */}

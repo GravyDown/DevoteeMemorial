@@ -186,7 +186,13 @@ app.post(
   "/api/admin/profiles/bulk-upload",
   authenticateToken,
   requireAdmin,
-  upload.single("file"),
+  // "file" = the spreadsheet itself (one). "images" = any local photos the
+  // admin is uploading alongside it (many), referenced by filename from
+  // the spreadsheet's Cover Image / Banner Image columns instead of a URL.
+  upload.fields([
+    { name: "file", maxCount: 1 },
+    { name: "images", maxCount: 100 },
+  ]),
   bulkUploadProfiles,
 );
 
