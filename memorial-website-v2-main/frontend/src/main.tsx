@@ -92,7 +92,7 @@ createRoot(document.getElementById("root")!).render(
             />
             <Route path="/offerings/new" element={<CreateOffering />} />
             <Route path="/disciples/:id" element={<DiscipleDetail />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/disciples" element={<Disciples />} />
             <Route path="/quotes" element={<Quotes />} />
             <Route path="/about" element={<About />} />

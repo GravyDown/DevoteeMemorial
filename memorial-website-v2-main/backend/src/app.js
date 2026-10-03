@@ -6,6 +6,8 @@ import { Offering } from "./models/offering.models.js";
 import { User } from "./models/user.models.js";
 import offeringRoutes from "./routes/offering.routes.js";
 import { authenticateToken, requireAdmin } from "./middlewares/auth.middleware.js";
+import { upload } from "./middlewares/multer.middleware.js";
+import { downloadBulkTemplate, bulkUploadProfiles } from "./controllers/bulkUpload.controller.js";
 
 // Routes
 import profileRoutes from "./routes/profile.routes.js";
@@ -176,6 +178,17 @@ app.get("/api/admin/stats", authenticateToken, requireAdmin, async (req, res) =>
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
+
+// Bulk devotee upload — download the spreadsheet template, or submit a
+// filled-in one. Both admin-only, same as every other /api/admin/* route.
+app.get("/api/admin/profiles/bulk-upload/template", authenticateToken, requireAdmin, downloadBulkTemplate);
+app.post(
+  "/api/admin/profiles/bulk-upload",
+  authenticateToken,
+  requireAdmin,
+  upload.single("file"),
+  bulkUploadProfiles,
+);
 
 // Delete a profile
 app.delete("/api/admin/profiles/:id", authenticateToken, requireAdmin, async (req, res) => {
